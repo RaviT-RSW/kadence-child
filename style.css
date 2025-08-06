@@ -1,0 +1,12 @@
+/*
+Theme Name: Kadence Child
+Theme URI: https://yourwebsite.com/
+Description: Child theme for the Kadence theme.
+Author: Your Name
+Author URI: https://yourwebsite.com/
+Template: kadence
+Version: 1.0.0
+*/
+
+/* Import parent theme styles */
+@import url("../kadence/style.css");
