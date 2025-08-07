@@ -158,11 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
         dateFormat: "Y-m-d H:i",
         disable: [],
         onChange: function(selectedDates, dateStr, instance) {
-            if (selectedDates.length > 0 && !currentMentorId) {
-                // Prevent date population if no mentor is selected
-                instance.setDate(null);
-                return;
-            }
             if (selectedDates.length > 0 && currentMentorId) {
                 const day = selectedDates[0].toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                 const mentorData = mentorHours[currentMentorId] && mentorHours[currentMentorId][day];
@@ -176,22 +171,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         },
+        onMonthChange: function(selectedDates, dateStr, instance) {
+            updateDisabledDates(instance);
+        },
+        onYearChange: function(selectedDates, dateStr, instance) {
+            updateDisabledDates(instance);
+        },
         onReady: function(selectedDates, dateStr, instance) {
             if (!currentMentorId) {
                 disableTimeInputs(true);
             }
+            updateDisabledDates(instance); // Initial disable setup
         }
     });
-
-    // Disable all dates by default
-    const today = new Date();
-    const disableAllDates = [];
-    let currentDate = new Date(today);
-    while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) { // 30 days lookahead
-        disableAllDates.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-    fp.set("disable", disableAllDates);
 
     // Function to disable/enable time inputs
     function disableTimeInputs(disable) {
@@ -208,46 +200,56 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initially disable time inputs
-    disableTimeInputs(true);
+    // Function to update disabled dates based on mentor's working hours
+    function updateDisabledDates(instance) {
+        if (!currentMentorId) {
+            const disableAllDates = [];
+            let currentDate = new Date();
+            while (currentDate <= new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)) { // 1-year lookahead
+                disableAllDates.push(new Date(currentDate));
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            instance.set("disable", disableAllDates);
+            disableTimeInputs(true);
+            return;
+        }
+
+        const mentorData = mentorHours[currentMentorId] || null;
+        if (!mentorData || Object.values(mentorData).every(data => data === null)) {
+            const disableAllDates = [];
+            let currentDate = new Date();
+            while (currentDate <= new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)) { // 1-year lookahead
+                disableAllDates.push(new Date(currentDate));
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            instance.set("disable", disableAllDates);
+            disableTimeInputs(true);
+            return;
+        }
+
+        const disableDates = [];
+        const startDate = new Date(instance.currentYear, instance.currentMonth, 1);
+        const endDate = new Date(instance.currentYear, instance.currentMonth + 1, 0); // Last day of the month
+        let currentDate = new Date(startDate);
+
+        while (currentDate <= endDate) {
+            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            const dayData = mentorData[dayName];
+
+            if (dayData === null || (dayData && !JSON.parse(dayData || '{}').start_time)) {
+                disableDates.push(new Date(currentDate));
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        instance.set("disable", disableDates);
+        disableTimeInputs(false); // Enable time inputs when valid mentor data exists
+    }
 
     // Update disable dates and times when mentor changes
     document.getElementById('mentorSelect').addEventListener('change', function() {
-
         currentMentorId = this.value;
-        const disableDates = [];
-
-        if (currentMentorId) {
-            const mentorData = mentorHours[currentMentorId] || null;
-            console.log('Mentor Data:', mentorData);
-
-            // If no mentor data exists in wp_mentor_working_hours, disable all dates and time
-            if (!mentorData || Object.values(mentorData).every(data => data === null)) {
-                fp.set("disable", disableAllDates);
-                disableTimeInputs(true);
-                return;
-            }
-
-            // Enable dates based on available working hours
-            let currentDate = new Date(today);
-            while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
-                const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                const dayData = mentorData[dayName];
-
-                if (dayData === null || (dayData && !JSON.parse(dayData || '{}').start_time)) {
-                    disableDates.push(new Date(currentDate));
-                }
-
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-
-            fp.set("disable", disableDates);
-            disableTimeInputs(false); // Enable time inputs when valid mentor data exists
-        } else {
-            // If no mentor selected, disable all dates and times
-            fp.set("disable", disableAllDates);
-            disableTimeInputs(true);
-        }
+        updateDisabledDates(fp);
     });
 
     // Handle form submission
