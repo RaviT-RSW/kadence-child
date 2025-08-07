@@ -100,7 +100,7 @@ function handle_add_session_to_cart() {
 }
 
 // Transfer cart item meta to order item meta
-add_action('woocommerce_checkout_create_order_line_item', 'transfer_cart_item_meta_to_order', 10, 4);
+//add_action('woocommerce_checkout_create_order_line_item', 'transfer_cart_item_meta_to_order', 10, 4);
 function transfer_cart_item_meta_to_order($item, $cart_item_key, $values, $order) {
     if (isset($values['mentor_id'])) {
         $item->update_meta_data('mentor_id', $values['mentor_id']);
@@ -150,3 +150,65 @@ function display_mentor_child_details($order) {
         }
     }
 }
+
+// Add AJAX action for rescheduling a session
+add_action('wp_ajax_reschedule_session', 'handle_reschedule_session');
+function handle_reschedule_session() {
+    check_ajax_referer('mentor_dashboard_nonce', 'nonce');
+
+    $item_id = isset($_POST['item_id']) ? intval($_POST['item_id']) : 0;
+    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+    $session_date_time = isset($_POST['session_date_time']) ? sanitize_text_field($_POST['session_date_time']) : '';
+
+    if ($item_id && $order_id && $session_date_time) {
+        $order = wc_get_order($order_id);
+        if ($order) {
+            $items = $order->get_items();
+            if (isset($items[$item_id])) {
+                $item = $items[$item_id];
+                $item->update_meta_data('session_date_time', $session_date_time);
+                $item->save();
+
+                wp_send_json_success(array('message' => 'Session rescheduled successfully.'));
+            } else {
+                wp_send_json_error(array('message' => 'Invalid item ID.'));
+            }
+        } else {
+            wp_send_json_error(array('message' => 'Invalid order ID.'));
+        }
+    } else {
+        wp_send_json_error(array('message' => 'Missing required data.'));
+    }
+    wp_die();
+}
+
+// Add AJAX action for canceling a session
+add_action('wp_ajax_cancel_session', 'handle_cancel_session');
+function handle_cancel_session() {
+    check_ajax_referer('mentor_dashboard_nonce', 'nonce');
+
+    $item_id = isset($_POST['item_id']) ? intval($_POST['item_id']) : 0;
+    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+
+    if ($item_id && $order_id) {
+        $order = wc_get_order($order_id);
+        if ($order) {
+            $items = $order->get_items();
+            if (isset($items[$item_id])) {
+                $item = $items[$item_id];
+                $item->update_meta_data('appointment_status', 'cancelled');
+                $item->save();
+
+                wp_send_json_success(array('message' => 'Session cancelled successfully.'));
+            } else {
+                wp_send_json_error(array('message' => 'Invalid item ID.'));
+            }
+        } else {
+            wp_send_json_error(array('message' => 'Invalid order ID.'));
+        }
+    } else {
+        wp_send_json_error(array('message' => 'Missing required data.'));
+    }
+    wp_die();
+}
+

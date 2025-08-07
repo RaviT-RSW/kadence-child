@@ -7,6 +7,7 @@ get_header();
 
 <!-- Parent Dashboard Template with Bootstrap 5 and Child Cards -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 
 <!-- Hero Section from Kadence -->
 <section class="entry-hero page-hero-section entry-hero-layout-standard">
@@ -45,6 +46,24 @@ get_header();
         'meta_key'   => 'assigned_parent_id',
         'meta_value' => $parent_id,
     ));
+
+    // Fetch mentor working hours
+    global $wpdb;
+    $mentors = get_users(array('role__in' => array('mentor_user')));
+    $mentor_hours = [];
+    foreach ($mentors as $mentor) {
+        $mentor_id = $mentor->ID;
+        $hours = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}mentor_working_hours WHERE mentor_id = %d", $mentor_id));
+        $mentor_hours[$mentor_id] = $hours ? [
+            'monday' => $hours->monday,
+            'tuesday' => $hours->tuesday,
+            'wednesday' => $hours->wednesday,
+            'thursday' => $hours->thursday,
+            'friday' => $hours->friday,
+            'saturday' => $hours->saturday,
+            'sunday' => $hours->sunday,
+        ] : [];
+    }
 
     if (!empty($children)) :
         foreach ($children as $child) :
@@ -101,6 +120,7 @@ get_header();
                               'child_id' => $child_id,
                               'appointment_status' => $appointment_status,
                               'order_id' => $order->get_id(),
+                              'item_id' => $item_id,
                           );
                       }
                   }
@@ -119,6 +139,14 @@ get_header();
 
               // Get next session (first future session)
               $next_session = !empty($future_sessions) ? array_shift($future_sessions) : null;
+              $next_status_class = '';
+              if ( $next_session['appointment_status'] === 'approved' ) {
+                $next_status_class = 'badge bg-success text-light';
+              } elseif ( $next_session['appointment_status'] === 'cancelled' ) {
+                $next_status_class = 'badge bg-danger text-light';
+              } else {
+                $next_status_class = 'badge bg-info text-light';
+              }
               ?>
               <?php if ($next_session) : ?>
                 <div class="session-details">
@@ -136,10 +164,26 @@ get_header();
                       <p class="mb-2"><strong>Child:</strong> <span class="text-primary fw-medium"><?php echo esc_html($next_session['child_name']); ?> (ID: <?php echo esc_html($next_session['child_id']); ?>)</span></p>
                     </div>
                     <div class="col-6">
-                      <p class="mb-2"><strong>Status:</strong> <span class="badge bg-info text-dark"><?php echo esc_html($next_session['appointment_status']); ?></span></p>
+                      <p class="mb-2"><strong>Status:</strong> <span class="<?php echo esc_attr($next_status_class); ?>"><?php echo esc_html(ucfirst($next_session['appointment_status'])); ?></span></p>
                     </div>
                     <div class="col-6">
                       <p class="mb-0"><strong>Order ID:</strong> <span class="text-secondary"><?php echo esc_html($next_session['order_id']); ?></span></p>
+                    </div>
+
+                  </div>
+                  <div class="row mt-3">
+                    <div class="col-12">
+                      <div class="btn-group" role="group">
+                        <?php if ($next_session['appointment_status'] === 'pending') : ?>
+                          <button type="button" class="btn btn-warning btn-sm reschedule-btn" data-bs-toggle="modal" data-bs-target="#rescheduleModal" data-mentor-id="<?php echo esc_attr($next_session['mentor_id']); ?>" data-session-date-time="<?php echo esc_attr($next_session['date_time']->format('Y-m-d H:i')); ?>" data-item-id="<?php echo esc_attr($next_session['item_id']); ?>" data-order-id="<?php echo esc_attr($next_session['order_id']); ?>">
+                            Reschedule Appointment
+                          </button>
+                          <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($next_session['item_id']); ?>" data-order-id="<?php echo esc_attr($next_session['order_id']); ?>">
+                            Cancel Event
+                          </button>
+                        <?php endif; ?>
+                        <a href="<?php echo esc_url(add_query_arg(array('order_id' => $next_session['order_id'], 'item_id' => $next_session['item_id']), site_url('/appointment-details/'))); ?>" class="btn btn-secondary btn-sm view-btn">View</a>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -157,7 +201,18 @@ get_header();
               <h4 class="card-title mb-3 fw-bold text-primary">Upcoming Sessions</h4>
               <?php if (!empty($future_sessions)) : ?>
                 <div class="session-list">
-                  <?php foreach ($future_sessions as $session) : ?>
+                  <?php 
+                      foreach ($future_sessions as $session) :
+                        $future_status_class = '';
+                          if ( $session['appointment_status'] === 'approved' ) {
+                            $future_status_class = 'badge bg-success text-light';
+                          } elseif ( $session['appointment_status'] === 'cancelled' ) {
+                            $future_status_class = 'badge bg-danger text-light';
+                          } else {
+                            $future_status_class = 'badge bg-info text-light';
+                          }
+                    
+                    ?>
                     <div class="session-item mb-3 p-3 border rounded">
                       <div class="row g-3">
                         <div class="col-6">
@@ -173,10 +228,25 @@ get_header();
                           <p class="mb-1"><strong>Child:</strong> <span class="text-primary fw-medium"><?php echo esc_html($session['child_name']); ?> (ID: <?php echo esc_html($session['child_id']); ?>)</span></p>
                         </div>
                         <div class="col-6">
-                          <p class="mb-0"><strong>Status:</strong> <span class="badge bg-info text-dark"><?php echo esc_html(ucfirst($session['appointment_status'])); ?></span></p>
+                          <p class="mb-0"><strong>Status:</strong> <span class="<?php echo esc_attr($future_status_class); ?>"><?php echo esc_html(ucfirst($session['appointment_status'])); ?></span></p>
                         </div>
                         <div class="col-6">
                           <p class="mb-0"><strong>Order ID:</strong> <span class="text-secondary"><?php echo esc_html($session['order_id']); ?></span></p>
+                        </div>
+                      </div>
+                      <div class="row mt-3">
+                        <div class="col-12">
+                          <div class="btn-group" role="group">
+                            <?php if ($session['appointment_status'] === 'pending') : ?>
+                              <button type="button" class="btn btn-warning btn-sm reschedule-btn" data-bs-toggle="modal" data-bs-target="#rescheduleModal" data-mentor-id="<?php echo esc_attr($session['mentor_id']); ?>" data-session-date-time="<?php echo esc_attr($session['date_time']->format('Y-m-d H:i')); ?>" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
+                                Reschedule Appointment
+                              </button>
+                              <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
+                                Cancel Event
+                              </button>
+                            <?php endif; ?>
+                            <a href="<?php echo esc_url(add_query_arg(array('order_id' => $session['order_id'], 'item_id' => $session['item_id']), site_url('/appointment-details/'))); ?>" class="btn btn-secondary btn-sm view-btn">View</a>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -189,66 +259,25 @@ get_header();
           </div>
         </div>
 
-        <?php 
-        $mentoring_plan_info = get_field('mentoring_plan_info', 'user_20');
-        $mentoring_plan_file = get_field('mentoring_plan_file', 'user_20');
-        ?>
-
-        <div class="col-12">
-          <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="card-title mb-0 fw-bold text-primary">Mentoring Plan</h4>
-                <?php if ($mentoring_plan_file): ?>
-                  <a href="<?php echo esc_url($mentoring_plan_file['url']); ?>" 
-                     class="btn btn-primary" 
-                     target="_blank" 
-                     download>
-                    Download Plan (PDF)
-                  </a>
-                <?php endif; ?>
+        <!-- Reschedule Modal -->
+        <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="rescheduleModalLabel">Reschedule Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
-              
-              <?php if ($mentoring_plan_info): ?>
-                <div class="mentoring-plan-info text-muted">
-                  <?php echo wp_kses_post($mentoring_plan_info); ?>
-                </div>
-              <?php else: ?>
-                <p class="text-muted">No mentoring plan information available.</p>
-              <?php endif; ?>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
-              <h4 class="card-title mb-3 fw-bold text-primary">Session Feedback</h4>
-              <ul class="list-group list-group-flush">
-                <li class="list-group-item">July 28 - "Great progress today." <a href="#" class="text-primary">Listen</a></li>
-                <li class="list-group-item">July 21 - "Needs support with reading."</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
-              <h4 class="card-title mb-3 fw-bold text-primary">Invoices</h4>
-              <ul class="list-group list-group-flush">
-                <li class="list-group-item">Invoice #1001 <a href="#" class="text-primary">Download PDF</a></li>
-                <li class="list-group-item">Invoice #1002 <a href="#" class="text-primary">Download PDF</a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="card shadow-sm mb-5">
-            <div class="card-body p-4 d-flex flex-wrap gap-3">
-              <a href="https://wa.me/MENTORNUMBER" class="btn btn-success">Contact Mentor</a>
-              <a href="mailto:admin@example.com" class="btn btn-dark">Contact Admin</a>
+              <div class="modal-body">
+                <form id="rescheduleForm">
+                  <input type="hidden" id="rescheduleItemId" name="item_id">
+                  <input type="hidden" id="rescheduleOrderId" name="order_id">
+                  <div class="mb-3">
+                    <label for="rescheduleDateTime" class="form-label">Select New Date and Time</label>
+                    <input type="text" class="form-control" id="rescheduleDateTime" name="session_date_time" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -309,8 +338,234 @@ get_header();
     font-size: 0.9rem;
     line-height: 1.6;
   }
+
+  /* Button Group Styling */
+  .btn-group .btn {
+    margin-right: 0.5rem;
+    padding: 0.25rem 1rem;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+  }
+  .btn-group .btn:last-child {
+    margin-right: 0;
+  }
+  .btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+  }
+  .btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #e0a800;
+    color: #000;
+  }
+  .btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+  .btn-danger:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+  }
+  .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+  }
+  .btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
+  }
+
+  /* Modal Styling */
+  .modal-content {
+    border-radius: 0.5rem;
+  }
+  #rescheduleDateTime {
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+  }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mentorHours = <?php echo json_encode($mentor_hours); ?> || {};
+    let currentMentorId = null;
+
+    // Initialize Flatpickr for rescheduling
+    const rescheduleFp = flatpickr("#rescheduleDateTime", {
+        enableTime: true,
+        minDate: "today",
+        dateFormat: "Y-m-d H:i",
+        disable: [],
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length > 0 && currentMentorId) {
+                const day = selectedDates[0].toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const mentorData = mentorHours[currentMentorId] && mentorHours[currentMentorId][day];
+                if (mentorData) {
+                    const data = JSON.parse(mentorData || '{}');
+                    instance.set("minTime", data.start_time || "00:00");
+                    instance.set("maxTime", data.end_time || "23:59");
+                } else {
+                    instance.set("minTime", "00:00");
+                    instance.set("maxTime", "23:59");
+                }
+            }
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+            if (!currentMentorId) {
+                instance.setDate(null);
+                disableTimeInputs(true);
+            } else {
+                const initialDate = instance.input.value ? new Date(instance.input.value) : new Date();
+                const day = initialDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const mentorData = mentorHours[currentMentorId] && mentorHours[currentMentorId][day];
+                if (mentorData) {
+                    const data = JSON.parse(mentorData || '{}');
+                    instance.set("minTime", data.start_time || "00:00");
+                    instance.set("maxTime", data.end_time || "23:59");
+                }
+            }
+        }
+    });
+
+    // Disable all dates by default in reschedule modal
+    const today = new Date();
+    const disableAllDates = [];
+    let currentDate = new Date(today);
+    while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
+        disableAllDates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    rescheduleFp.set("disable", disableAllDates);
+
+    // Function to disable/enable time inputs in modal
+    function disableTimeInputs(disable) {
+        const timeContainer = document.querySelector('.flatpickr-time');
+        if (timeContainer) {
+            const timeInputs = timeContainer.querySelectorAll('input, .flatpickr-am-pm');
+            timeInputs.forEach(input => {
+                input.disabled = disable;
+                input.style.pointerEvents = disable ? 'none' : 'auto';
+                input.style.opacity = disable ? '0.5' : '1';
+            });
+            timeContainer.style.pointerEvents = disable ? 'none' : 'auto';
+            timeContainer.style.opacity = disable ? '0.5' : '1';
+        }
+    }
+
+    // Handle reschedule modal show
+    document.querySelectorAll('.reschedule-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            currentMentorId = this.getAttribute('data-mentor-id');
+            const sessionDateTime = this.getAttribute('data-session-date-time');
+            const itemId = this.getAttribute('data-item-id');
+            const orderId = this.getAttribute('data-order-id');
+
+            document.getElementById('rescheduleItemId').value = itemId;
+            document.getElementById('rescheduleOrderId').value = orderId;
+
+            // Reset and configure Flatpickr based on mentor
+            rescheduleFp.setDate(sessionDateTime);
+            const disableDates = [];
+            if (currentMentorId) {
+                const mentorData = mentorHours[currentMentorId] || null;
+                if (!mentorData || Object.values(mentorData).every(data => !data || data === null)) {
+                    rescheduleFp.set("disable", disableAllDates);
+                    disableTimeInputs(true);
+                } else {
+                    let currentDate = new Date(today);
+                    while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
+                        const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                        const dayData = mentorData[dayName];
+                        if (!dayData || (dayData && !JSON.parse(dayData || '{}').start_time)) {
+                            disableDates.push(new Date(currentDate));
+                        }
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                    rescheduleFp.set("disable", disableDates);
+                    disableTimeInputs(false);
+                }
+            } else {
+                rescheduleFp.set("disable", disableAllDates);
+                disableTimeInputs(true);
+            }
+            rescheduleFp.redraw(); // Force redraw to ensure UI updates
+        });
+    });
+
+    // Handle reschedule form submission
+    document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('action', 'reschedule_session');
+        formData.append('nonce', '<?php echo wp_create_nonce('mentor_dashboard_nonce'); ?>');
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                showNotification('Failed to reschedule: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            showNotification('An error occurred. Please try again.', 'danger');
+        });
+    });
+
+    // Handle cancel button
+    document.querySelectorAll('.cancel-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const orderId = this.getAttribute('data-order-id');
+            if (confirm('Are you sure you want to cancel this appointment?')) {
+                const formData = new FormData();
+                formData.append('action', 'cancel_session');
+                formData.append('item_id', itemId);
+                formData.append('order_id', orderId);
+                formData.append('nonce', '<?php echo wp_create_nonce('mentor_dashboard_nonce'); ?>');
+
+                fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        showNotification('Failed to cancel: ' + data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch Error:', error);
+                    showNotification('An error occurred. Please try again.', 'danger');
+                });
+            }
+        });
+    });
+
+    // Notification function
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+    }
+});
+</script>
 
 <?php get_footer(); ?>
