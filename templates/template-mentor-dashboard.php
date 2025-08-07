@@ -34,33 +34,50 @@ get_header();
   $sessions = array();
   $all_orders = wc_get_orders(array(
       'limit' => -1,
-      'status' => array('wc-completed', 'wc-processing', 'wc-on-hold'),
+      'status' => array('wc-processing', 'wc-on-hold'),
   ));
 
-  foreach ($all_orders as $order) {
-      foreach ($order->get_items() as $item_id => $item) {
-          $item_mentor_id = $item->get_meta('mentor_id');
-          $child_id = $item->get_meta('child_id');
-          $session_date_time = $item->get_meta('session_date_time');
-          $appointment_status = $item->get_meta('appointment_status') ?: 'Scheduled';
-          $zoom_link = $item->get_meta('zoom_link') ?: '';
-          $location = $item->get_meta('location') ?: 'Online';
-          if ($item_mentor_id == $mentor_id && $child_id && $session_date_time) {
-              $child = get_user_by('id', $child_id);
-              $product_name = $item->get_name();
-              $sessions[] = array(
-                  'date_time' => new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata')),
-                  'child_name' => $child ? $child->display_name : 'Unknown Child',
-                  'child_id' => $child_id,
-                  'appointment_status' => $appointment_status,
-                  'order_id' => $order->get_id(),
-                  'product_name' => $product_name,
-                  'zoom_link' => $zoom_link,
-                  'location' => $location,
-                  'customer_id' => $order->get_customer_id(),
-              );
-          }
+  foreach ($all_orders as $order)
+  {
+    foreach ($order->get_items() as $item_id => $item)
+    {
+
+      $item_mentor_id = $item->get_meta('mentor_id');
+      $child_id = $item->get_meta('child_id');
+      $session_date_time = $item->get_meta('session_date_time');
+      $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
+      $zoom_meeting = $item->get_meta('zoom_meeting') ?: '';
+      $location = $item->get_meta('location') ?: 'online';
+
+      $zoom_link = '';
+
+      if($location == 'online' && !empty($zoom_meeting) && class_exists('Zoom'))
+      {
+        $zoom = new Zoom();
+        $zoom_link = $zoom->getMeetingUrl($zoom_meeting, 'start_url');
       }
+
+
+      if ($item_mentor_id == $mentor_id && $child_id && $session_date_time)
+      {
+        $child = get_user_by('id', $child_id);
+        $product_name = $item->get_name();
+        $sessions[] = array(
+            'date_time' => new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata')),
+            'child_name' => $child ? $child->display_name : 'Unknown Child',
+            'child_id' => $child_id,
+            'appointment_status' => $appointment_status,
+            'order_id' => $order->get_id(),
+            'product_name' => $product_name,
+            'zoom_link' => $zoom_link,
+            'location' => $location,
+            'customer_id' => $order->get_customer_id(),
+            'item_id' => $item_id,
+        );
+      }
+
+    }
+
   }
 
   usort($sessions, function($a, $b) {
@@ -152,13 +169,35 @@ get_header();
                     <div class="col-6">
                       <p class="mb-0"><strong>Order ID:</strong> <span class="text-secondary"><?php echo esc_html($session['order_id']); ?></span></p>
                     </div>
-                    <div class="col-12">
+
+
+                    <div class="col-6">
+                      <div class="btn-group" role="group">
+                        <?php if ($session['appointment_status'] === 'pending') : ?>
+                          
+                          <button type="button" class="btn btn-success btn-sm approve-appoinment-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
+                            Approve
+                          </button>
+
+                          <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
+                            Cancel
+                          </button>
+                        <?php endif; ?>
+                        <a href="<?php echo esc_url(add_query_arg(array('order_id' => $session['order_id'], 'item_id' => $session['item_id']), site_url('/appointment-details/'))); ?>" class="btn btn-secondary btn-sm view-btn">View</a>
+                      </div>
+                    </div>
+
+
+                    <div class="col-6">
                       <?php if ($session['zoom_link']) : ?>
                         <a href="<?php echo esc_url($session['zoom_link']); ?>" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
-                          <i class="fas fa-video me-1"></i>Join Session
+                          <i class="fas fa-video me-1"></i>Start Meeting
                         </a>
                       <?php endif; ?>
+
                     </div>
+
+                    
                   </div>
                 </div>
               <?php endforeach; ?>

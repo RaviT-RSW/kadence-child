@@ -1,8 +1,24 @@
 <?php
-// Enqueue parent theme styles
+
 add_action('wp_enqueue_scripts', 'kadence_child_enqueue_styles');
 function kadence_child_enqueue_styles() {
+    // Enqueue parent theme styles
     wp_enqueue_style('kadence-parent-style', get_template_directory_uri() . '/style.css');
+
+
+    wp_enqueue_style('kadence-child-style', get_stylesheet_directory_uri() . '/assets/csss/style.css');
+
+    wp_enqueue_script('kadence-child-script', get_stylesheet_directory_uri() . '/assets/js/script.js');
+
+    $data_for_js = array(
+        'ajax_url' => admin_url( 'admin-ajax.php' ),
+        'current_user_id' => get_current_user_id(),
+        'mentor_dashboard_nonce' => wp_create_nonce('mentor_dashboard_nonce'),
+
+        // Add more here as required
+    );
+
+    wp_localize_script( 'kadence-child-script', 'php', $data_for_js );
 }
 
 // Include custom user roles
@@ -10,6 +26,9 @@ require_once get_stylesheet_directory() . '/includes/custom-roles.php';
 require_once get_stylesheet_directory() . '/includes/functions-general.php';
 require_once get_stylesheet_directory() . '/includes/shortcodes.php';
 
+require_once get_stylesheet_directory() . '/includes/class.zoom.php';
+
+require_once get_stylesheet_directory() . '/functions-ajax.php';
 
 add_filter('login_url', 'custom_login_url', 10, 3);
 function custom_login_url($login_url, $redirect, $force_reauth) {
@@ -170,36 +189,6 @@ function handle_reschedule_session() {
                 $item->save();
 
                 wp_send_json_success(array('message' => 'Session rescheduled successfully.'));
-            } else {
-                wp_send_json_error(array('message' => 'Invalid item ID.'));
-            }
-        } else {
-            wp_send_json_error(array('message' => 'Invalid order ID.'));
-        }
-    } else {
-        wp_send_json_error(array('message' => 'Missing required data.'));
-    }
-    wp_die();
-}
-
-// Add AJAX action for canceling a session
-add_action('wp_ajax_cancel_session', 'handle_cancel_session');
-function handle_cancel_session() {
-    check_ajax_referer('mentor_dashboard_nonce', 'nonce');
-
-    $item_id = isset($_POST['item_id']) ? intval($_POST['item_id']) : 0;
-    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
-
-    if ($item_id && $order_id) {
-        $order = wc_get_order($order_id);
-        if ($order) {
-            $items = $order->get_items();
-            if (isset($items[$item_id])) {
-                $item = $items[$item_id];
-                $item->update_meta_data('appointment_status', 'cancelled');
-                $item->save();
-
-                wp_send_json_success(array('message' => 'Session cancelled successfully.'));
             } else {
                 wp_send_json_error(array('message' => 'Invalid item ID.'));
             }

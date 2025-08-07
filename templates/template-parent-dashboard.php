@@ -108,6 +108,16 @@ get_header();
                       $session_date_time = $item->get_meta('session_date_time');
                       $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
 
+                      $location = $item->get_meta('location') ?: 'online';
+                      $zoom_meeting = $item->get_meta('zoom_meeting') ?: '';
+                      $zoom_link = '';
+
+                      if($location == 'online' && !empty($zoom_meeting) && class_exists('Zoom'))
+                      {
+                        $zoom = new Zoom();
+                        $zoom_link = $zoom->getMeetingUrl($zoom_meeting, 'start_url');
+                      }
+
                       if ($mentor_id && $child_id && $session_date_time) {
                           $mentor = get_user_by('id', $mentor_id);
                           $child = get_user_by('id', $child_id);
@@ -121,6 +131,7 @@ get_header();
                               'appointment_status' => $appointment_status,
                               'order_id' => $order->get_id(),
                               'item_id' => $item_id,
+                              'zoom_link' => $zoom_link,
                           );
                       }
                   }
@@ -214,7 +225,9 @@ get_header();
                     
                     ?>
                     <div class="session-item mb-3 p-3 border rounded">
+
                       <div class="row g-3">
+
                         <div class="col-6">
                           <p class="mb-1"><strong>Date:</strong> <span class="text-success fw-medium"><?php echo esc_html($session['date_time']->format('F d, Y')); ?></span></p>
                         </div>
@@ -233,9 +246,8 @@ get_header();
                         <div class="col-6">
                           <p class="mb-0"><strong>Order ID:</strong> <span class="text-secondary"><?php echo esc_html($session['order_id']); ?></span></p>
                         </div>
-                      </div>
-                      <div class="row mt-3">
-                        <div class="col-12">
+
+                        <div class="col-6">
                           <div class="btn-group" role="group">
                             <?php if ($session['appointment_status'] === 'pending') : ?>
                               <button type="button" class="btn btn-warning btn-sm reschedule-btn" data-bs-toggle="modal" data-bs-target="#rescheduleModal" data-mentor-id="<?php echo esc_attr($session['mentor_id']); ?>" data-session-date-time="<?php echo esc_attr($session['date_time']->format('Y-m-d H:i')); ?>" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
@@ -248,7 +260,21 @@ get_header();
                             <a href="<?php echo esc_url(add_query_arg(array('order_id' => $session['order_id'], 'item_id' => $session['item_id']), site_url('/appointment-details/'))); ?>" class="btn btn-secondary btn-sm view-btn">View</a>
                           </div>
                         </div>
+
+                        <div class="col-6">
+                          <?php if ($session['zoom_link']) : ?>
+                            <a href="<?php echo esc_url($session['zoom_link']); ?>" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
+                              <i class="fas fa-video me-1"></i>Join Metting
+                            </a>
+                          <?php else: ?>
+                             <button class="btn btn-secondary me-2" disabled>
+                            <i class="fas fa-video me-1"></i>Meeting Link Not Available
+                          </button>
+                          <?php endif; ?>
+                        </div>
+
                       </div>
+
                     </div>
                   <?php endforeach; ?>
                 </div>
@@ -521,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle cancel button
+/*    // Handle cancel button
     document.querySelectorAll('.cancel-btn').forEach(button => {
         button.addEventListener('click', function() {
             const itemId = this.getAttribute('data-item-id');
@@ -551,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
-    });
+    });*/
 
     // Notification function
     function showNotification(message, type = 'info') {

@@ -57,3 +57,14 @@ function urmentor_get_dashboard_url()
     }
     return home_url();
 }
+
+function dd($a, $m="")
+{
+    echo "<pre>";
+    if(!empty($m)){
+        echo "<br>".$m."<br>";
+    }
+    print_r($a);
+    echo "</pre>";
+    exit;
+}
