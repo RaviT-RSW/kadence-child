@@ -70,7 +70,7 @@ get_header();
         <!-- Next Session -->
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Next Session</h4>
               <?php
               $parent_id = $current_user->ID;
@@ -153,7 +153,7 @@ get_header();
         <!-- Upcoming Sessions -->
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Upcoming Sessions</h4>
               <?php if (!empty($future_sessions)) : ?>
                 <div class="session-list">
@@ -196,7 +196,7 @@ get_header();
 
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="card-title mb-0 fw-bold text-primary">Mentoring Plan</h4>
                 <?php if ($mentoring_plan_file): ?>
@@ -222,7 +222,7 @@ get_header();
 
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Session Feedback</h4>
               <ul class="list-group list-group-flush">
                 <li class="list-group-item">July 28 - "Great progress today." <a href="#" class="text-primary">Listen</a></li>
@@ -234,7 +234,7 @@ get_header();
 
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Invoices</h4>
               <ul class="list-group list-group-flush">
                 <li class="list-group-item">Invoice #1001 <a href="#" class="text-primary">Download PDF</a></li>
@@ -246,7 +246,7 @@ get_header();
 
         <div class="col-12">
           <div class="card shadow-sm mb-5">
-            <div class="card-body p-4 d-flex flex-wrap gap-3">
+            <div class="card-body d-flex flex-wrap gap-3">
               <a href="https://wa.me/MENTORNUMBER" class="btn btn-success">Contact Mentor</a>
               <a href="mailto:admin@example.com" class="btn btn-dark">Contact Admin</a>
             </div>
@@ -261,55 +261,6 @@ get_header();
     <?php endif; ?>
   </div>
 </div>
-
-<style>
-  .child-card img {
-    width: 100px;
-    height: 100px;
-    object-fit: cover;
-    justify-self: center;
-    align-self: center;
-  }
-  .child-card .btn {
-    margin-top: 10px;
-  }
-
-  /* Session Card Styling */
-  .session-details, .session-item {
-    background-color: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    border-left: 4px solid #0d6efd;
-  }
-  .session-item {
-    background-color: #ffffff;
-    border-left-color: #6c757d;
-  }
-  .session-details .row, .session-item .row {
-    align-items: center;
-  }
-  .session-details p, .session-item p {
-    margin-bottom: 0.5rem;
-    font-size: 0.95rem;
-  }
-  .session-details .text-success, .session-item .text-success {
-    font-weight: 500;
-  }
-  .session-details .badge, .session-item .badge {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.85rem;
-  }
-  .session-list .session-item:last-child {
-    margin-bottom: 0;
-  }
-  .card-title {
-    font-size: 1.25rem;
-  }
-  .mentoring-plan-info {
-    font-size: 0.9rem;
-    line-height: 1.6;
-  }
-</style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
