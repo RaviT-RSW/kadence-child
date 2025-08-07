@@ -151,20 +151,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const mentorHours = <?php echo json_encode($mentor_hours); ?>;
     let currentMentorId = null;
 
-    // Initialize Flatpickr with dynamic disabling
+    // Initialize Flatpickr with all dates and times disabled by default
     const fp = flatpickr("#sessionDateTime", {
         enableTime: true,
         minDate: "today",
         dateFormat: "Y-m-d H:i",
-        minTime: "00:00",
-        maxTime: "23:59",
         disable: [],
         onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length > 0 && !currentMentorId) {
+                // Prevent date population if no mentor is selected
+                instance.setDate(null);
+                return;
+            }
             if (selectedDates.length > 0 && currentMentorId) {
                 const day = selectedDates[0].toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                 const mentorData = mentorHours[currentMentorId] && mentorHours[currentMentorId][day];
                 if (mentorData) {
-                    const data = JSON.parse(mentorData);
+                    const data = JSON.parse(mentorData || '{}');
                     instance.set("minTime", data.start_time || "00:00");
                     instance.set("maxTime", data.end_time || "23:59");
                 } else {
@@ -172,27 +175,66 @@ document.addEventListener('DOMContentLoaded', function() {
                     instance.set("maxTime", "23:59");
                 }
             }
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+            if (!currentMentorId) {
+                disableTimeInputs(true);
+            }
         }
     });
 
+    // Disable all dates by default
+    const today = new Date();
+    const disableAllDates = [];
+    let currentDate = new Date(today);
+    while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) { // 30 days lookahead
+        disableAllDates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    fp.set("disable", disableAllDates);
+
+    // Function to disable/enable time inputs
+    function disableTimeInputs(disable) {
+        const timeContainer = document.querySelector('.flatpickr-time');
+        if (timeContainer) {
+            const timeInputs = timeContainer.querySelectorAll('input, .flatpickr-am-pm');
+            timeInputs.forEach(input => {
+                input.disabled = disable;
+                input.style.pointerEvents = disable ? 'none' : 'auto';
+                input.style.opacity = disable ? '0.5' : '1';
+            });
+            timeContainer.style.pointerEvents = disable ? 'none' : 'auto';
+            timeContainer.style.opacity = disable ? '0.5' : '1';
+        }
+    }
+
+    // Initially disable time inputs
+    disableTimeInputs(true);
+
     // Update disable dates and times when mentor changes
     document.getElementById('mentorSelect').addEventListener('change', function() {
+
         currentMentorId = this.value;
+        const disableDates = [];
+
         if (currentMentorId) {
-            const disableDates = [];
-            const today = new Date();
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            const mentorData = mentorHours[currentMentorId] || {};
+            const mentorData = mentorHours[currentMentorId] || null;
             console.log('Mentor Data:', mentorData);
 
-            // Start disabling from today
+            // If no mentor data exists in wp_mentor_working_hours, disable all dates and time
+            if (!mentorData || Object.values(mentorData).every(data => data === null)) {
+                fp.set("disable", disableAllDates);
+                disableTimeInputs(true);
+                return;
+            }
+
+            // Enable dates based on available working hours
             let currentDate = new Date(today);
-            while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) { // 30 days lookahead
+            while (currentDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)) {
                 const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                 const dayData = mentorData[dayName];
 
-                // Disable if dayData is null or doesn't contain a valid start_time
-                if (dayData === null || (dayData && !JSON.parse(dayData).start_time)) {
+                if (dayData === null || (dayData && !JSON.parse(dayData || '{}').start_time)) {
                     disableDates.push(new Date(currentDate));
                 }
 
@@ -200,8 +242,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             fp.set("disable", disableDates);
+            disableTimeInputs(false); // Enable time inputs when valid mentor data exists
         } else {
-            fp.set("disable", []);
+            // If no mentor selected, disable all dates and times
+            fp.set("disable", disableAllDates);
+            disableTimeInputs(true);
         }
     });
 

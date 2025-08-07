@@ -77,6 +77,7 @@ function handle_add_session_to_cart() {
     $mentor_id = intval($_POST['mentorSelect']);
     $session_date_time = sanitize_text_field($_POST['sessionDateTime']);
     $child_id = intval($_POST['childSelect']);
+    $appointment_status = 'pending';
 
     if (!$session_product_id || !$mentor_id || !$session_date_time || !$child_id) {
         wp_send_json_error(['message' => 'All fields are required.']);
@@ -88,6 +89,7 @@ function handle_add_session_to_cart() {
         'mentor_id' => $mentor_id,
         'child_id' => $child_id,
         'session_date_time' => $session_date_time,
+        'appointment_status' => $appointment_status,
     ));
 
     if ($cart_item_key) {
@@ -109,6 +111,9 @@ function transfer_cart_item_meta_to_order($item, $cart_item_key, $values, $order
     if (isset($values['session_date_time'])) {
         $item->update_meta_data('session_date_time', $values['session_date_time']);
     }
+    if (isset($values['appointment_status'])) {
+        $item->update_meta_data('appointment_status', $values['appointment_status']);
+    }
 }
 
 // Display mentor and child details on admin order details page
@@ -119,6 +124,7 @@ function display_mentor_child_details($order) {
         $mentor_id = $item->get_meta('mentor_id');
         $child_id = $item->get_meta('child_id');
         $session_date_time = $item->get_meta('session_date_time');
+        $appointment_status = $item->get_meta('appointment_status');
 
         if ($mentor_id && $child_id) {
             // Get mentor and child user objects
@@ -136,6 +142,9 @@ function display_mentor_child_details($order) {
             }
             if ($session_date_time) {
                 echo '<p><strong>Session Date & Time:</strong> ' . esc_html($session_date_time) . '</p>';
+            }
+            if ($appointment_status) {
+                echo '<p><strong>Appointment Status:</strong> ' . esc_html($appointment_status) . '</p>';
             }
             echo '</div>';
         }
