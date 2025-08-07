@@ -278,4 +278,81 @@
   font-weight: bold;
 }
 
+/* Child Card Styling (for Parent Dashboard) */
+.child-card img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  justify-self: center;
+  align-self: center;
+}
+.child-card .btn {
+  margin-top: 10px;
+}
 
+/* Session Card Styling (Next Session and Upcoming Sessions) */
+.session-details,
+.session-item {
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid #0d6efd;
+}
+.session-item {
+  background-color: #ffffff;
+  border-left-color: #6c757d;
+}
+.session-details .row,
+.session-item .row {
+  align-items: center;
+}
+.session-details p,
+.session-item p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+.session-details .text-success,
+.session-item .text-success {
+  font-weight: 500;
+}
+.session-details .badge,
+.session-item .badge {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+.session-list .session-item:last-child {
+  margin-bottom: 0;
+}
+
+/* General Card Styling */
+.card-title {
+  font-size: 1.25rem;
+}
+.card.shadow-sm {
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  border-radius: 0.5rem;
+}
+.card-body {
+  padding: 1.5rem;
+}
+
+/* Mentoring Plan Info */
+.mentoring-plan-info {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .session-details,
+  .session-item {
+      padding: 1rem;
+  }
+  .card-title {
+      font-size: 1.1rem;
+  }
+  .child-card img {
+      width: 80px;
+      height: 80px;
+  }
+}

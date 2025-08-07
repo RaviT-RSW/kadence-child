@@ -89,7 +89,7 @@ get_header();
         <!-- Next Session -->
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Next Session</h4>
               <?php
               $parent_id = $current_user->ID;
@@ -197,7 +197,7 @@ get_header();
         <!-- Upcoming Sessions -->
         <div class="col-12">
           <div class="card shadow-sm mb-4">
-            <div class="card-body p-4">
+            <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Upcoming Sessions</h4>
               <?php if (!empty($future_sessions)) : ?>
                 <div class="session-list">

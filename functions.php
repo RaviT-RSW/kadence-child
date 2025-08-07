@@ -100,7 +100,7 @@ function handle_add_session_to_cart() {
 }
 
 // Transfer cart item meta to order item meta
-//add_action('woocommerce_checkout_create_order_line_item', 'transfer_cart_item_meta_to_order', 10, 4);
+add_action('woocommerce_checkout_create_order_line_item', 'transfer_cart_item_meta_to_order', 10, 4);
 function transfer_cart_item_meta_to_order($item, $cart_item_key, $values, $order) {
     if (isset($values['mentor_id'])) {
         $item->update_meta_data('mentor_id', $values['mentor_id']);
