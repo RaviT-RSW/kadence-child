@@ -9,11 +9,11 @@ Class Zoom
 
 	public function __construct()
 	{
-		$this->clientId = get_field('zoom_client_id');
-		$this->clientSecret = get_field('zoom_client_secret');
-		$this->accountId = get_field('zoom_account_id');
-		// get from option table pending
-		$this->adminUserEmail = 'admin@email.com';  // The Zoom user who owns the meeting ('your_admin_zoom_email@example.com')
+		$this->clientId = get_field('zoom_client_id', 'option');
+		$this->clientSecret = get_field('zoom_client_secret', 'option');
+		$this->accountId = get_field('zoom_account_id', 'option');
+		// The Zoom user who owns the meeting ('your_admin_zoom_email@example.com')
+		$this->adminUserEmail = get_field('zoom_admin_user_email', 'option');
 	}
 
 	public function getAccessToken()

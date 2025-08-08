@@ -5,21 +5,6 @@
 get_header();
 ?>
 
-<!-- Parent Dashboard Template with Bootstrap 5 and Child Cards -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
-
-<!-- Hero Section from Kadence -->
-<section class="entry-hero page-hero-section entry-hero-layout-standard">
-  <div class="entry-hero-container-inner">
-    <div class="hero-section-overlay"></div>
-    <div class="hero-container site-container">
-      <header class="entry-header page-title title-align-inherit title-tablet-align-inherit title-mobile-align-inherit">
-        <h1 class="entry-title">Parent Dashboard</h1>
-      </header>
-    </div>
-  </div>
-</section>
 
 <div class="container my-5">
   <!-- Welcome Section -->

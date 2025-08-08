@@ -104,22 +104,6 @@ $mentees = $wpdb->get_results(
 );
 ?>
 
-<!-- Keep your existing CSS and Bootstrap links -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
-<!-- Hero Section -->
-<section class="entry-hero page-hero-section entry-hero-layout-standard">
-  <div class="entry-hero-container-inner">
-    <div class="hero-section-overlay"></div>
-    <div class="hero-container site-container">
-      <header class="entry-header page-title title-align-inherit title-tablet-align-inherit title-mobile-align-inherit">
-        <h1 class="entry-title">Mentor Dashboard</h1>
-      </header>
-    </div>
-  </div>
-</section>
-
 <div class="container my-5">
   <!-- Welcome Section -->
   <div class="mb-4">
@@ -244,19 +228,35 @@ $mentees = $wpdb->get_results(
                 <div class="col-6">
                   <p class="mb-0"><strong>Order ID:</strong> <span class="text-secondary"><?php echo esc_html($next_session['order_id']); ?></span></p>
                 </div>
-                <div class="col-12">
-                  <div class="mt-3">
-                    <?php if ($next_session['zoom_link']) : ?>
-                      <a href="<?php echo esc_url($next_session['zoom_link']); ?>" class="btn btn-primary me-2" target="_blank">
-                        <i class="fas fa-video me-1"></i>Start Session
-                      </a>
-                    <?php else: ?>
-                      <button class="btn btn-secondary me-2" disabled>
-                        <i class="fas fa-video me-1"></i>Meeting Link Not Available
+
+                <div class="col-6">
+                  <div class="btn-group" role="group">
+                    <?php if ($next_session['appointment_status'] === 'pending') : ?>
+                      
+                      <button type="button" class="btn btn-success btn-sm approve-appoinment-btn" data-item-id="<?php echo esc_attr($next_session['item_id']); ?>" data-order-id="<?php echo esc_attr($next_session['order_id']); ?>">
+                        Approve
+                      </button>
+
+                      <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($next_session['item_id']); ?>" data-order-id="<?php echo esc_attr($next_session['order_id']); ?>">
+                        Cancel
                       </button>
                     <?php endif; ?>
+                    <a href="<?php echo esc_url(add_query_arg(array('order_id' => $next_session['order_id'], 'item_id' => $next_session['item_id']), site_url('/appointment-details/'))); ?>" class="btn btn-secondary btn-sm view-btn">View</a>
                   </div>
                 </div>
+
+                <div class="col-6">
+                  <?php if ($next_session['zoom_link']) : ?>
+                    <a href="<?php echo esc_url($next_session['zoom_link']); ?>" class="btn btn-primary me-2" target="_blank">
+                      <i class="fas fa-video me-1"></i>Start Session
+                    </a>
+                  <?php else: ?>
+                    <button class="btn btn-secondary me-2" disabled>
+                      <i class="fas fa-video me-1"></i>Meeting Link Not Available
+                    </button>
+                  <?php endif; ?>
+                </div>
+
               </div>
             </div>
           <?php else : ?>
