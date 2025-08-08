@@ -91,6 +91,17 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
     'nonce' => wp_create_nonce('mentor_dashboard_nonce'),
     'sessions' => $js_sessions,
 ));
+
+// Fetch unique mentees from wp_assigned_mentees
+global $wpdb;
+$mentees = $wpdb->get_results(
+    $wpdb->prepare(
+        "SELECT DISTINCT child_id, (SELECT display_name FROM {$wpdb->users} WHERE ID = child_id) as child_name
+         FROM {$wpdb->prefix}assigned_mentees
+         WHERE mentor_id = %d",
+        $mentor_id
+    )
+);
 ?>
 
 <!-- Keep your existing CSS and Bootstrap links -->
@@ -122,7 +133,7 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
   $sessions = array();
   $all_orders = wc_get_orders(array(
       'limit' => -1,
-      'status' => array('wc-processing', 'wc-on-hold'),
+      'status' => array('wc-processing', 'wc-on-hold', 'wc-completed'),
   ));
 
   foreach ($all_orders as $order)
@@ -283,16 +294,12 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
                     <div class="col-6">
                       <p class="mb-0"><strong>Order ID:</strong> <span class="text-secondary"><?php echo esc_html($session['order_id']); ?></span></p>
                     </div>
-
-
                     <div class="col-6">
                       <div class="btn-group" role="group">
                         <?php if ($session['appointment_status'] === 'pending') : ?>
-                          
                           <button type="button" class="btn btn-success btn-sm approve-appoinment-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
                             Approve
                           </button>
-
                           <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>">
                             Cancel
                           </button>
@@ -300,18 +307,13 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
                         <a href="<?php echo esc_url(add_query_arg(array('order_id' => $session['order_id'], 'item_id' => $session['item_id']), site_url('/appointment-details/'))); ?>" class="btn btn-secondary btn-sm view-btn">View</a>
                       </div>
                     </div>
-
-
                     <div class="col-6">
                       <?php if ($session['zoom_link']) : ?>
                         <a href="<?php echo esc_url($session['zoom_link']); ?>" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
                           <i class="fas fa-video me-1"></i>Start Meeting
                         </a>
                       <?php endif; ?>
-
                     </div>
-
-                    
                   </div>
                 </div>
               <?php endforeach; ?>
@@ -323,8 +325,10 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
       </div>
     </div>
 
+    <!-- Calendar and Mentees Side by Side -->
+    <div class="row g-4">
       <!-- Session Schedule Calendar -->
-      <div class="col-12">
+      <div class="col-md-8">
         <div class="card shadow-sm mb-4">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -358,6 +362,40 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
             
             <!-- Calendar Container -->
             <div id="mentorCalendar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mentees Table -->
+      <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            <h4 class="card-title mb-3 fw-bold text-primary">Assigned Mentees</h4>
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Mentee Name</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($mentees as $mentee) : ?>
+                    <tr>
+                      <td><?php echo ucfirst($mentee->child_name) . ' (' . esc_html($mentee->child_id) . ')'; ?></td>
+                      <td>
+                        <a href="<?php echo esc_url(add_query_arg('child_id', $mentee->child_id, site_url('/appointment-history/'))); ?>" class="btn btn-sm btn-primary">View</a>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                  <?php if (empty($mentees)) : ?>
+                    <tr>
+                      <td colspan="2" class="text-center text-muted">No mentees assigned.</td>
+                    </tr>
+                  <?php endif; ?>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
