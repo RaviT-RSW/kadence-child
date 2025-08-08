@@ -13,7 +13,7 @@ $mentor_id = $current_mentor->ID;
 $sessions = array();
 $all_orders = wc_get_orders(array(
     'limit' => -1,
-    'status' => array('wc-processing', 'wc-on-hold'),
+    'status' => array('wc-processing', 'wc-on-hold', 'wc-completed'),
 ));
 
 foreach ($all_orders as $order) {
@@ -178,7 +178,33 @@ wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
   });
 
   $next_session = !empty($future_sessions) ? array_shift($future_sessions) : null;
+
+  // Calculate session statistics
+  $total_sessions = count($sessions);
+  $approved_sessions = count(array_filter($sessions, function($s) { return strtolower($s['appointment_status']) === 'approved'; }));
+  $pending_sessions = count(array_filter($sessions, function($s) { return strtolower($s['appointment_status']) === 'pending'; }));
+  $upcoming_sessions = count($future_sessions) + ($next_session ? 1 : 0);
   ?>
+
+    <!-- Session Statistics -->
+    <div class="session-stats mb-4">
+    <div class="stat-item">
+      <div class="stat-number"><?php echo $total_sessions; ?></div>
+      <div class="stat-label">Total Sessions</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number"><?php echo $approved_sessions; ?></div>
+      <div class="stat-label">Approved</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number"><?php echo $upcoming_sessions; ?></div>
+      <div class="stat-label">Upcoming</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number"><?php echo $pending_sessions; ?></div>
+      <div class="stat-label">Pending</div>
+    </div>
+  </div>
 
   <div class="row g-4 mb-4">
     <!-- Next Session -->
