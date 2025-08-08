@@ -113,3 +113,50 @@ function save_child_parent_meta_on_edit($user_id) {
         delete_user_meta($user_id, 'assigned_parent_id'); // clean up if role changed
     }
 }
+
+
+// Common functions to check role
+
+// If no user ID given, use current logged-in user
+function is_parent_user( $user_id = null )
+{
+    $user = $user_id ? get_userdata( $user_id ) : wp_get_current_user();
+
+    if ( empty( $user->roles ) ) {
+        return false;
+    }
+
+    return in_array( 'parent_user', (array) $user->roles, true );
+}
+
+function is_child_user( $user_id = null )
+{
+    $user = $user_id ? get_userdata( $user_id ) : wp_get_current_user();
+
+    if ( empty( $user->roles ) ) {
+        return false;
+    }
+
+    return in_array( 'child_user', (array) $user->roles, true );
+}
+
+function is_mentor_user( $user_id = null )
+{
+    $user = $user_id ? get_userdata( $user_id ) : wp_get_current_user();
+
+    if ( empty( $user->roles ) ) {
+        return false;
+    }
+
+    return in_array( 'mentor_user', (array) $user->roles, true );
+}
+
+function is_admin_user( $user_id = null ) {
+    $user = $user_id ? get_userdata( $user_id ) : wp_get_current_user();
+
+    if ( empty( $user->roles ) ) {
+        return false;
+    }
+
+    return in_array( 'administrator', (array) $user->roles, true );
+}

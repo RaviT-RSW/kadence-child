@@ -12,6 +12,14 @@ function kadence_child_enqueue_styles() {
 
     wp_enqueue_style('kadence-child-style', get_stylesheet_directory_uri() . '/assets/css/style.css');
 
+
+    wp_enqueue_script('bootstrap-js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js');
+    wp_enqueue_script('fullcalendar-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js');
+
+    wp_enqueue_script('script-mentor-js', get_stylesheet_directory_uri() . '/assets/js/script-mentor.js', '1.0.0', true);
+
+    wp_enqueue_script('flatpickr-js', 'https://cdn.jsdelivr.net/npm/flatpickr"');
+
     wp_enqueue_script('kadence-child-script', get_stylesheet_directory_uri() . '/assets/js/script.js');
 
     $data_for_js = array(

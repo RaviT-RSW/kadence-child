@@ -4,8 +4,6 @@
  */
 get_header();
 
-// Enqueue custom script
-wp_enqueue_script('script-mentor-js', get_stylesheet_directory_uri() . '/assets/js/script-mentor.js', '1.0.0', true);
 
 // Get session data
 $current_mentor = wp_get_current_user();
@@ -440,7 +438,5 @@ $mentees = $wpdb->get_results(
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <?php get_footer(); ?>
