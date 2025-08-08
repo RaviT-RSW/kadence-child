@@ -3,6 +3,94 @@
  * Template Name: Mentor Dashboard
  */
 get_header();
+
+// Enqueue custom script
+wp_enqueue_script('script-mentor-js', get_stylesheet_directory_uri() . '/assets/js/script-mentor.js', '1.0.0', true);
+
+// Get session data
+$current_mentor = wp_get_current_user();
+$mentor_id = $current_mentor->ID;
+$sessions = array();
+$all_orders = wc_get_orders(array(
+    'limit' => -1,
+    'status' => array('wc-processing', 'wc-on-hold'),
+));
+
+foreach ($all_orders as $order) {
+    foreach ($order->get_items() as $item_id => $item) {
+        $item_mentor_id = $item->get_meta('mentor_id');
+        $child_id = $item->get_meta('child_id');
+        $session_date_time = $item->get_meta('session_date_time');
+        $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
+        $zoom_meeting = $item->get_meta('zoom_meeting') ?: '';
+        $location = $item->get_meta('location') ?: 'online';
+
+        $zoom_link = '';
+
+        if($location == 'online' && !empty($zoom_meeting) && class_exists('Zoom')) {
+            $zoom = new Zoom();
+            $zoom_link = $zoom->getMeetingUrl($zoom_meeting, 'start_url');
+        }
+
+        if ($item_mentor_id == $mentor_id && $child_id && $session_date_time) {
+            $child = get_user_by('id', $child_id);
+            $product_name = $item->get_name();
+            $session_data = array(
+                'date_time' => new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata')),
+                'child_name' => $child ? $child->display_name : 'Unknown Child',
+                'child_id' => $child_id,
+                'appointment_status' => $appointment_status,
+                'order_id' => $order->get_id(),
+                'product_name' => $product_name,
+                'zoom_link' => $zoom_link,
+                'location' => $location,
+                'customer_id' => $order->get_customer_id(),
+                'item_id' => $item_id,
+            );
+            $sessions[] = $session_data;
+        }
+    }
+}
+
+usort($sessions, function($a, $b) {
+    return $a['date_time'] <=> $b['date_time'];
+});
+
+$today = new DateTime('now', new DateTimeZone('Asia/Kolkata'));
+$future_sessions = array_filter($sessions, function($session) use ($today) {
+    return $session['date_time'] > $today;
+});
+
+$next_session = !empty($future_sessions) ? array_shift($future_sessions) : null;
+
+// Prepare sessions data for JavaScript (calendar format)
+$js_sessions = array_map(function($session) {
+    $date_time_clone = clone $session['date_time'];
+    return [
+        'id' => $session['order_id'],
+        'title' => $session['child_name'] . ' - ' . $session['product_name'],
+        'start' => $session['date_time']->format('Y-m-d\TH:i:s'),
+        'end' => $date_time_clone->add(new DateInterval('PT1H'))->format('Y-m-d\TH:i:s'),
+        'extendedProps' => [
+            'child_name' => $session['child_name'],
+            'child_id' => $session['child_id'],
+            'product_name' => $session['product_name'],
+            'appointment_status' => $session['appointment_status'],
+            'order_id' => $session['order_id'],
+            'zoom_link' => $session['zoom_link'],
+            'location' => $session['location'],
+            'customer_id' => $session['customer_id'],
+            'item_id' => $session['item_id']
+        ]
+    ];
+}, $sessions);
+
+// Localize script with data
+wp_localize_script('script-mentor-js', 'mentorDashboardData', array(
+    'ajax_url' => admin_url('admin-ajax.php'),
+    'nonce' => wp_create_nonce('mentor_dashboard_nonce'),
+    'sessions' => $js_sessions,
+));
 ?>
 
 <!-- Keep your existing CSS and Bootstrap links -->
@@ -209,35 +297,41 @@ get_header();
       </div>
     </div>
 
-    <!-- Connected Customers from Amelia -->
-    <div class="col-12">
-      <div class="cardಮ card shadow-sm mb-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="card-title mb-0 fw-bold text-primary">My Mentees</h4>
-            <span class="badge bg-primary">0</span>
-          </div>
-          <div class="mentee-list">
-            <div class="text-center py-3">
-              <i class="fas fa-user-plus fa-2x text-muted mb-2"></i>
-              <p class="text-muted mb-0">No customers assigned yet</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Amelia Calendar Integration -->
+      <!-- Session Schedule Calendar -->
       <div class="col-12">
         <div class="card shadow-sm mb-4">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h4 class="card-title mb-0 fw-bold text-primary">Session Schedule</h4>
               <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary btn-sm active">Week</button>
-                <button type="button" class="btn btn-outline-primary btn-sm">Month</button>
+                <button type="button" class="btn btn-outline-primary btn-sm active" id="calendarMonth">Month</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="calendarWeek">Week</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="calendarDay">Day</button>
               </div>
             </div>
-            <!-- Amelia Calendar Shortcode - this will show only current employee's appointments -->
+            
+            <!-- Calendar Legend -->
+            <div class="calendar-legend">
+              <div class="legend-item">
+                <div class="legend-color session-approved"></div>
+                <span>Approved</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color session-scheduled"></div>
+                <span>Scheduled</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color session-pending"></div>
+                <span>Pending</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color session-cancelled"></div>
+                <span>Cancelled</span>
+              </div>
+            </div>
+            
+            <!-- Calendar Container -->
+            <div id="mentorCalendar"></div>
           </div>
         </div>
       </div>
@@ -283,5 +377,6 @@ get_header();
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
 <?php get_footer(); ?>
