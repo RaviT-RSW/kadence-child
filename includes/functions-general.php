@@ -21,12 +21,12 @@ function add_logout_link_to_menu($items, $args) {
 
     if(is_user_logged_in()){
         $items .= '<li class="menu-item"><a href="' . urmentor_get_dashboard_url() . '"> Dashboard </a></li>';
-        $items .= '<li class="menu-item"><a href="http://localhost/urmentor-pwa/user-profile/"> Profile </a></li>';
+        $items .= '<li class="menu-item"><a href="' . home_url('/user-profile/') . '"> Profile </a></li>';
         if ( in_array('mentor_user', (array)$current_user->roles) ){
-            $items .= '<li class="menu-item"><a href="http://localhost/urmentor-pwa/working-hours/"> Working Hours </a></li>';
+            $items .= '<li class="menu-item"><a href="' . home_url('/working-hours/') . '"> Working Hours </a></li>';
         }
         if ( in_array('parent_user', (array)$current_user->roles) ){
-            $items .= '<li class="menu-item"><a href="http://localhost/urmentor-pwa/book-session/"> Book Session </a></li>';
+            $items .= '<li class="menu-item"><a href="' . home_url('/book-session/') . '"> Book Session </a></li>';
         }   
     }
     if (is_user_logged_in() && $args->theme_location === 'primary') {

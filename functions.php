@@ -202,3 +202,40 @@ function handle_reschedule_session() {
     wp_die();
 }
 
+// Add record to wp_assigned_mentees table when an order is placed
+add_action('woocommerce_checkout_order_processed', 'add_assigned_mentees_record', 10, 2);
+
+function add_assigned_mentees_record($order_id, $posted_data) {
+    global $wpdb;
+
+    // Get the order object
+    $order = wc_get_order($order_id);
+
+    if ($order) {
+        // Loop through order items
+        foreach ($order->get_items() as $item_id => $item) {
+            // Retrieve mentor_id and child_id from item meta
+            $mentor_id = $item->get_meta('mentor_id');
+            $child_id = $item->get_meta('child_id');
+
+            // Check if mentor_id and child_id exist
+            if ($mentor_id && $child_id) {
+                // Insert record into wp_assigned_mentees table
+                $wpdb->insert(
+                    $wpdb->prefix . 'assigned_mentees',
+                    array(
+                        'mentor_id' => $mentor_id,
+                        'child_id' => $child_id,
+                        'order_id' => $order_id,
+                    ),
+                    array('%d', '%d', '%d')
+                );
+
+                if ($wpdb->last_error) {
+                    // Log error if insertion fails
+                    error_log('Failed to insert record into wp_assigned_mentees: ' . $wpdb->last_error);
+                }
+            }
+        }
+    }
+}
