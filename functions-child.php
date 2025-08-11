@@ -305,10 +305,6 @@ function display_help_requests_page() {
 	<div class="wrap">
 		<h1>Help Requests</h1>
 
-		<?php if (empty($requests)): ?>
-			<p>No help requests found.</p>
-		<?php else: ?>
-
 		<!-- Filter Form -->
 		<form method="GET" style="margin-bottom: 15px; float: right;">
 			<input type="hidden" name="page" value="help-requests">
@@ -337,10 +333,7 @@ function display_help_requests_page() {
 			<a href="<?php echo admin_url('admin.php?page=help-requests'); ?>" class="button">Reset</a>
 		</form>
 
-		<?php 
-		// $requests = get_option('all_help_requests', array());
-		// $requests = array_reverse($requests);
-
+		<?php
 		$requests = get_option('all_help_requests', array());
 
 		// Sort so that "pending" comes first
@@ -404,7 +397,8 @@ function display_help_requests_page() {
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ($requests as $request): ?>
+					<?php if (!empty($requests)):
+					foreach ($requests as $request): ?>
 					<tr>
 						<td>
 							<span style="font-weight: bold;"><?php echo esc_html($request['user_name']); ?></span><br>
@@ -431,7 +425,6 @@ function display_help_requests_page() {
 							<?php echo human_time_diff( strtotime( $request['date'] ), current_time( 'timestamp' ) ) . ' ago'; ?>
 						</td>
 						<td class="actions-column">
-							<!-- Status Update -->
 							<form method="POST" style="display: inline;" class="status-form">
 								<input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
 								<select name="status" onchange="this.form.submit()" class="small-select">
@@ -441,16 +434,19 @@ function display_help_requests_page() {
 								</select>
 								<input type="hidden" name="update_status" value="1">
 							</form>
-
-							<!-- Delete Button with Popup -->
 							<button type="button" class="delete-btn" onclick="showDeleteConfirmation('<?php echo esc_js($request['id']); ?>', '<?php echo esc_js($request['user_name']); ?>')"> 🗑️ Delete </button>
 						</td>
 					</tr>
-					<?php endforeach; ?>
-                </tbody>
+					<?php endforeach;
+					else: ?>
+						<tr>
+							<td colspan="6" style="text-align:center;">No help requests found</td>
+						</tr>
+					<?php endif; ?>
+				</tbody>
+
             </table>
         </form>
-        <?php endif; ?>
     </div>
 
     <!-- Delete Confirmation Popup -->
