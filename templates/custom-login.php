@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['custom_login_nonce'])
         <h2>Login to Your Account</h2>
         
         <?php if (isset($error_message)) : ?>
-            <div class="error-message"><?php echo esc_html($error_message); ?></div>
+            <div class="error-message"><?php echo $error_message; ?></div>
         <?php endif; ?>
 
         <form method="post" id="custom-login-form">

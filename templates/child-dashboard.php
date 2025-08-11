@@ -213,71 +213,47 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
         <div class="card-body">
           <h4 class="card-title mb-3 fw-bold text-danger">🚨 Emergency Contacts</h4>
           <div class="row g-2">
+            <!-- Parents Contact -->
+            <?php
+            $parent_detail = get_user_by('id', $parent_id);
+            $phone_number = get_user_meta($parent_id, 'billing_phone', true);
+
+            if (!empty($phone_number )): ?>
             <div class="col-md-3">
               <div class="d-grid">
-                <a href="tel:999" class="btn btn-danger text-decoration-none">
-                  <i class="fas fa-phone me-2"></i>Police – 999
+                <a href="tel:<?php echo $phone_number; ?>" class="btn btn-primary text-decoration-none">
+                  <i class="fas fa-phone me-2"></i>Parent  <?php echo $phone_number; ?>
                 </a>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="d-grid">
-                <a href="tel:998" class="btn btn-danger text-decoration-none">
-                  <i class="fas fa-phone me-2"></i>Ambulance – 998
-                </a>
+
+            <?php endif;
+            $field_values = get_field('contact_number', 'option');
+            foreach($field_values as $field_value){ ?>
+              <div class="col-md-3">
+                <div class="d-grid">
+                  <a href="tel:<?php echo $field_value['number']; ?>" class="btn btn-danger text-decoration-none">
+                    <i class="fas fa-phone me-2"></i><?php echo $field_value['name']; ?> – <?php echo $field_value['number']; ?>
+                  </a>
+                </div>
               </div>
-            </div>
-            <div class="col-md-3">
-              <div class="d-grid">
-                <a href="tel:997" class="btn btn-danger text-decoration-none">
-                  <i class="fas fa-phone me-2"></i>Fire – 997
-                </a>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="d-grid">
-                <a href="tel:+11234567890" class="btn btn-primary text-decoration-none">
-                  <i class="fas fa-phone me-2"></i>Parent
-                </a>
-              </div>
-            </div>
+            <?php } ?>
+
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Help Section -->
-    <div class="col-12">
-      <div class="card shadow-sm mb-5">
-        <div class="card-body">
-          <h4 class="card-title mb-3 fw-bold text-primary">❓ Need Help?</h4>
-          <form action="#" method="POST">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label for="help_reason" class="form-label">Select a reason</label>
-                <select id="help_reason" name="reason" class="form-select">
-                  <option>I feel upset and want to talk</option>
-                  <option>I don't understand something</option>
-                  <option>Something bad happened</option>
-                  <option>Different Reason</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label for="help_message" class="form-label">Short message</label>
-                <textarea id="help_message" name="message" class="form-control" rows="3" placeholder="Tell us more if you want to..."></textarea>
-              </div>
-              <div class="col-12">
-                <button type="submit" class="btn btn-warning">
-                  <i class="fas fa-paper-plane me-2"></i>Submit to Admin
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
+
+<?php
+  $current_user = wp_get_current_user();
+
+  if ( ! is_user_logged_in() || ! is_child_user($current_user) ) {
+     echo do_shortcode('[help_form]');
+  }
+?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 

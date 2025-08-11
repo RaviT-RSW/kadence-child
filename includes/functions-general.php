@@ -68,3 +68,31 @@ function dd($a, $m="")
     echo "</pre>";
     exit;
 }
+
+// Function to build email body from template
+function build_email_body($template_name, $replacements = []) {
+    $base_path = get_stylesheet_directory() . '/assets/email/';
+    $header = file_get_contents($base_path . 'header.html');
+    $footer = file_get_contents($base_path . 'footer.html');
+    $body = file_get_contents($base_path . $template_name);
+    
+    if (!$body) {
+        return '';
+    }
+    
+    $full = $header . $body . $footer;
+    
+    $defaults = [
+        'site_name' => get_bloginfo('name'),
+        'site_url'  => site_url(),
+        'year'      => date('Y')
+    ];
+    
+    $replacements = array_merge($defaults, $replacements);
+    
+    foreach ($replacements as $key => $value) {
+        $full = str_replace('{' . $key . '}', $value, $full);
+    }
+    
+    return $full;
+}
