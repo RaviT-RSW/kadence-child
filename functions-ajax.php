@@ -102,3 +102,185 @@ function handle_approve_session() {
     wp_die();
 }
 
+
+/**
+ * Handles AJAX request to finish an appointment.
+ *
+ * @since 1.0.0
+ */
+function handle_finish_appointment() {
+    check_ajax_referer('finish_appointment_nonce', 'nonce');
+
+    $item_id = isset($_POST['item_id']) ? intval($_POST['item_id']) : 0;
+    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+
+    if (!$item_id || !$order_id) {
+        wp_send_json_error(['message' => 'Invalid item or order ID']);
+        wp_die();
+    }
+
+    $order = wc_get_order($order_id);
+    if (!$order) {
+        wp_send_json_error(['message' => 'Order not found']);
+        wp_die();
+    }
+
+    $items = $order->get_items();
+    $item = isset($items[$item_id]) ? $items[$item_id] : false;
+    if (!$item) {
+        wp_send_json_error(['message' => 'Item not found']);
+        wp_die();
+    }
+
+    // Update appointment status
+    $item->update_meta_data('appointment_status', 'finished');
+    $item->save();
+
+    wp_send_json_success(['message' => 'Appointment finished successfully']);
+    wp_die();
+}
+add_action('wp_ajax_finish_appointment', 'handle_finish_appointment');
+
+
+/**
+ * Handles AJAX request to save feedback for an appointment.
+ *
+ * @since 1.0.0
+ */
+function handle_save_appointment_feedback() {
+    check_ajax_referer('save_feedback_nonce', 'nonce');
+
+    global $wpdb;
+    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+    $feedback_note = isset($_POST['feedback_note']) ? sanitize_textarea_field($_POST['feedback_note']) : '';
+
+    if (!$order_id) {
+        wp_send_json_error(['message' => 'Invalid order ID']);
+        wp_die();
+    }
+
+    $feedback_voice = '';
+    if (!empty($_FILES['feedback_voice']['name'])) {
+        $upload = wp_upload_bits($_FILES['feedback_voice']['name'], null, file_get_contents($_FILES['feedback_voice']['tmp_name']));
+        if (!$upload['error']) {
+            $feedback_voice = $upload['url'];
+        } else {
+            wp_send_json_error(['message' => 'Error uploading voice note']);
+            wp_die();
+        }
+    }
+
+    // Check if feedback exists
+    $existing_feedback = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$wpdb->prefix}appointment_feedback WHERE order_id = %d", $order_id)
+    );
+
+    if ($existing_feedback) {
+        // Update existing feedback
+        $wpdb->update(
+            $wpdb->prefix . 'appointment_feedback',
+            [
+                'feedback_short_note' => $feedback_note,
+                'feedback_voice_notes' => $feedback_voice ?: $existing_feedback->feedback_voice_notes,
+                'updated_at' => current_time('mysql')
+            ],
+            ['order_id' => $order_id],
+            ['%s', '%s', '%s'],
+            ['%d']
+        );
+    } else {
+        // Insert new feedback
+        $wpdb->insert(
+            $wpdb->prefix . 'appointment_feedback',
+            [
+                'order_id' => $order_id,
+                'feedback_short_note' => $feedback_note,
+                'feedback_voice_notes' => $feedback_voice,
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ],
+            ['%d', '%s', '%s', '%s', '%s']
+        );
+    }
+
+    wp_send_json_success(['message' => 'Feedback saved successfully']);
+    wp_die();
+}
+add_action('wp_ajax_save_appointment_feedback', 'handle_save_appointment_feedback');
+
+
+/**
+ * Handles saving an expense record for an appointment order via AJAX.
+ *
+ * @since 1.0.0
+ */
+function handle_save_appointment_expense() {
+    check_ajax_referer('save_expense_nonce', 'nonce');
+
+    global $wpdb;
+    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+    $expense_amount = isset($_POST['expense_amount']) ? floatval($_POST['expense_amount']) : 0;
+    $expense_description = isset($_POST['expense_description']) ? sanitize_textarea_field($_POST['expense_description']) : '';
+
+    if (!$order_id || !$expense_amount) {
+        wp_send_json_error(['message' => 'Invalid order ID or amount']);
+        wp_die();
+    }
+
+    $expense_receipt = '';
+    if (!empty($_FILES['expense_receipt']['name'])) {
+        $upload = wp_upload_bits($_FILES['expense_receipt']['name'], null, file_get_contents($_FILES['expense_receipt']['tmp_name']));
+        if ($upload['error']) {
+            wp_send_json_error(['message' => 'Error uploading receipt: ' . $upload['error']]);
+            wp_die();
+        }
+        $expense_receipt = $upload['url'];
+    }
+
+    // Check if expense exists
+    $existing_expense = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$wpdb->prefix}appointment_expense WHERE order_id = %d", $order_id)
+    );
+
+    if ($existing_expense) {
+        // Update existing expense
+        $wpdb->update(
+            $wpdb->prefix . 'appointment_expense',
+            [
+                'expense_amount' => number_format($expense_amount, 2, '.', ''),
+                'expense_description' => $expense_description,
+                'expense_receipt' => $expense_receipt ?: $existing_expense->expense_receipt,
+                'updated_at' => current_time('mysql')
+            ],
+            ['order_id' => $order_id],
+            ['%f', '%s', '%s', '%s'],
+            ['%d']
+        );
+    } else {
+        // Insert new expense
+        $wpdb->insert(
+            $wpdb->prefix . 'appointment_expense',
+            [
+                'order_id' => $order_id,
+                'expense_amount' => number_format($expense_amount, 2, '.', ''),
+                'expense_description' => $expense_description,
+                'expense_receipt' => $expense_receipt,
+                'expense_status' => 'pending',
+                'created_at' => current_time('mysql'),
+                'updated_at' => current_time('mysql')
+            ],
+            ['%d', '%f', '%s', '%s', '%s', '%s', '%s']
+        );
+    }
+
+    // Check for insert/update errors
+    if ($wpdb->last_error) {
+        error_log('Failed to save expense: ' . $wpdb->last_error);
+        wp_send_json_error(['message' => 'Failed to save expense: ' . $wpdb->last_error]);
+        wp_die();
+    }
+
+    wp_send_json_success(['message' => 'Expense saved successfully']);
+    wp_die();
+}
+add_action('wp_ajax_save_appointment_expense', 'handle_save_appointment_expense');
