@@ -365,6 +365,15 @@ $mentees = $wpdb->get_results(
       </div>
 
       <!-- Mentees Table -->
+      <?php
+        // Fetch mentees where the current user is the assigned mentor
+        $mentees = get_users(array(
+            'meta_key'   => 'assigned_mentor_id',
+            'meta_value' => $mentor_id,
+            'fields'     => array('ID', 'display_name'),
+        ));
+
+      ?>
       <div class="col-md-4">
         <div class="card shadow-sm mb-4">
           <div class="card-body">
@@ -378,15 +387,16 @@ $mentees = $wpdb->get_results(
                   </tr>
                 </thead>
                 <tbody>
-                  <?php foreach ($mentees as $mentee) : ?>
-                    <tr>
-                      <td><?php echo ucfirst($mentee->child_name) . ' (' . esc_html($mentee->child_id) . ')'; ?></td>
-                      <td>
-                        <a href="<?php echo esc_url(add_query_arg('child_id', $mentee->child_id, site_url('/appointment-history/'))); ?>" class="btn btn-sm btn-primary">View</a>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                  <?php if (empty($mentees)) : ?>
+                  <?php if (!empty($mentees)) : ?>
+                    <?php foreach ($mentees as $mentee) : ?>
+                      <tr>
+                        <td><?php echo esc_html(ucfirst($mentee->display_name)) . ' (' . esc_html($mentee->ID) . ')'; ?></td>
+                        <td>
+                          <a href="<?php echo esc_url(add_query_arg('child_id', $mentee->ID, site_url('/appointment-history/'))); ?>" class="btn btn-sm btn-primary">View</a>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  <?php else : ?>
                     <tr>
                       <td colspan="2" class="text-center text-muted">No mentees assigned.</td>
                     </tr>

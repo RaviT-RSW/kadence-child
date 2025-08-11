@@ -36,6 +36,7 @@ function kadence_child_enqueue_styles() {
 // Include custom user roles
 require_once get_stylesheet_directory() . '/includes/manage-custom-roles.php';
 require_once get_stylesheet_directory() . '/includes/manage-hourly-rate.php';
+require_once get_stylesheet_directory() . '/includes/mentor-management.php';
 require_once get_stylesheet_directory() . '/includes/functions-general.php';
 require_once get_stylesheet_directory() . '/includes/shortcodes.php';
 
