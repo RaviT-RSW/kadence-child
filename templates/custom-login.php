@@ -43,6 +43,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['custom_login_nonce'])
         $error_message = $user->get_error_message();
     }
 }
+
+// Custom function to replace WordPress lost password URL with custom URL
+function custom_lostpassword_url() {
+    return home_url('/custom-lost-password');
+}
+
+// Filter the error message to use custom lost password URL
+if (isset($error_message)) {
+    $error_message = str_replace(wp_lostpassword_url(), custom_lostpassword_url(), $error_message);
+}
 ?>
 <!-- LOGIN FORM HTML + CSS (updated) -->
 <div class="custom-login-container">
@@ -81,7 +91,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['custom_login_nonce'])
             <button type="submit" class="login-button">Log In</button>
         </form>
         
-     
+        <div class="login-links">
+            <a href="<?php echo custom_lostpassword_url(); ?>">Lost your password?</a>
+        </div>
     </div>
 </div>
 
