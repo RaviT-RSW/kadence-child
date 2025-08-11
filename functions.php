@@ -43,6 +43,8 @@ require_once get_stylesheet_directory() . '/includes/class.zoom.php';
 
 require_once get_stylesheet_directory() . '/functions-ajax.php';
 
+require 'functions-child.php';
+
 add_filter('login_url', 'custom_login_url', 10, 3);
 function custom_login_url($login_url, $redirect, $force_reauth) {
     return home_url('/custom-login'); // Replace with your login page slug

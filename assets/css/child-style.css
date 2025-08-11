@@ -1,0 +1,160 @@
+#close-popup:hover {
+	background-color: #218838 !important;
+}
+
+@media (max-width: 480px) {
+	#help-success-popup > div {
+		margin: 20% auto !important;
+		width: 95% !important;
+		padding: 15px !important;
+	}
+}
+
+#close-delete-popup:hover {
+    background-color: #c82333 !important;
+}
+
+@media (max-width: 480px) {
+    #delete-success-popup > div {
+        margin: 20% auto !important;
+        width: 95% !important;
+        padding: 20px !important;
+    }
+}
+
+/* Floating Help Button */
+#helpButton {
+	position: fixed;
+	bottom: 20px;
+	right: 20px;
+	background: #ffc107;
+	color: #000;
+	padding: 12px 18px;
+	border-radius: 30px;
+	box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+	cursor: pointer;
+	font-weight: bold;
+	z-index: 9999;
+}
+
+/* Form Panel */
+/* Form Panel - initially hidden off-screen */
+#helpFormPanel {
+	position: fixed;
+	bottom: 80px;
+	right: 20px;
+	width: 280px;
+	background: #fff;
+	border: 2px solid #ffc107;
+	border-radius: 8px;
+	padding: 15px;
+	box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+	transform: translateY(20px);
+	opacity: 0;
+	pointer-events: none;
+	transition: all 0.3s ease; /* Smooth animation */
+	z-index: 10000;
+}
+
+/* When active - slide in and fade in */
+#helpFormPanel.open {
+	transform: translateY(0);
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.help-reasons-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.help-reason-card {
+	border: 2px solid #e9ecef;
+	border-radius: 6px;
+	padding: 10px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	background: #fff;
+	transition: all 0.2s ease;
+}
+
+.help-reason-card:hover {
+	border-color: #ffc107;
+	background-color: #fff3cd;
+}
+
+.help-reason-card.selected {
+	border-color: #ffc107;
+	background-color: #fff3cd;
+}
+
+.help-icon {
+	font-size: 1.5rem;
+}
+
+textarea {
+	width: 100%;
+	resize: none;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.status-pending { background: #ffeb3b; color: #333; }
+.status-in_progress { background: #2196f3; color: white; }
+.status-resolved { background: #4caf50; color: white; }
+.status-pending { background-color: #fff3cd; }
+
+.actions-column { white-space: nowrap; }
+.status-form, .delete-form { margin: 0; }
+.check-column { width: 2.2em; }
+
+.small-select {
+    font-size: 12px;
+    padding: 2px 4px;
+    margin-right: 5px;
+}
+
+.delete-btn {
+    color: #d63638;
+    text-decoration: none;
+    font-size: 12px;
+    padding: 2px 4px;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    color: #d63638;
+    text-decoration: underline;
+}
+
+#cancel-delete:hover {
+    background-color: #5a6268 !important;
+}
+
+#confirm-delete:hover {
+    background-color: #c82333 !important;
+}
+
+@media (max-width: 480px) {
+    #delete-confirmation-popup > div {
+        margin: 20% auto !important;
+        width: 95% !important;
+        padding: 20px !important;
+    }
+    
+    #delete-confirmation-popup button {
+        padding: 8px 15px !important;
+        font-size: 13px !important;
+    }
+}
