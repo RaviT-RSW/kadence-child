@@ -1,5 +1,8 @@
 <?php
 
+global $wpdb;
+define('CHILD_GOAL_TABLE', $wpdb->prefix.'user_goals');
+
 add_action('wp_enqueue_scripts', 'kadence_child_enqueue_styles');
 function kadence_child_enqueue_styles() {
     // Enqueue parent theme styles
@@ -126,10 +129,12 @@ require_once get_stylesheet_directory() . '/includes/mentor-management.php';
 require_once get_stylesheet_directory() . '/includes/functions-general.php';
 require_once get_stylesheet_directory() . '/includes/functions-cronjob.php';
 require_once get_stylesheet_directory() . '/includes/shortcodes.php';
+require_once get_stylesheet_directory() . '/includes/functions-sql.php';
 
 require_once get_stylesheet_directory() . '/includes/class.zoom.php';
 
 require_once get_stylesheet_directory() . '/functions-ajax.php';
+require_once get_stylesheet_directory() . '/mentor/goals.php';
 
 require 'functions-child.php';
 
