@@ -4,7 +4,7 @@
  */
 get_header();
 ?>
-<div class="container-fluid my-5">
+<div class="container-fluid">
   <?php
   $current_user = wp_get_current_user();
   if (!is_user_logged_in() || !in_array('mentor_user', (array)$current_user->roles)) :

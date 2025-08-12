@@ -14,9 +14,15 @@ $mentees = $wpdb->get_results(
         $mentor_id
     )
 );
+
+
+
+
 ?>
 
-<div class="container my-5">
+
+
+<div class="container">
   <!-- Welcome Section -->
   <div class="mb-4">
     <h2 class="mb-1">Welcome, <span class="text-primary"><?php echo wp_get_current_user()->display_name; ?></span></h2>
@@ -321,6 +327,7 @@ $mentees = $wpdb->get_results(
   </div>
 </div>
 
+
 <!-- Mentee Details Modal (Single Modal for All Mentees) -->
 <div class="modal fade" id="menteeDetailsModal" tabindex="-1" aria-labelledby="menteeDetailsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -359,4 +366,5 @@ $mentees = $wpdb->get_results(
 </div>
 
 
-<?php get_footer(); ?>
+
+<?php  get_footer(); ?>

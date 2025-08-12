@@ -6,7 +6,7 @@ get_header();
 ?>
 
 
-<div class="container-fluid my-5">
+<div class="container-fluid">
   <?php
   $user_id = $current_user->ID;
   $user_info = get_userdata($user_id);
