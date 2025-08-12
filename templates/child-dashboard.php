@@ -28,7 +28,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
     <p class="text-muted">Here's what's coming up for you.</p>
   </div>
 
-  <?php $goals = get_child_goal(); ?>
+  <?php $goals = get_child_goal($current_child_id); ?>
     <!-- Target Goals -->
     <div class="row g-4 mb-4">
         <?php foreach ($goals as $index => $goal) : ?>

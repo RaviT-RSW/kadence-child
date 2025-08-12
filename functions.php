@@ -131,6 +131,7 @@ require_once get_stylesheet_directory() . '/includes/functions-general.php';
 require_once get_stylesheet_directory() . '/includes/functions-cronjob.php';
 require_once get_stylesheet_directory() . '/includes/shortcodes.php';
 require_once get_stylesheet_directory() . '/includes/functions-sql.php';
+require_once get_stylesheet_directory() . '/includes/function-manage-users.php';
 
 require_once get_stylesheet_directory() . '/includes/class.zoom.php';
 
