@@ -284,3 +284,60 @@ function handle_save_appointment_expense() {
     wp_die();
 }
 add_action('wp_ajax_save_appointment_expense', 'handle_save_appointment_expense');
+
+
+/**
+ * Handles AJAX request to get assigned mentor for a child.
+ *
+ * @since 1.0.0
+ *
+ * @param int $child_id Child ID
+ */
+function handle_get_assigned_mentor() {
+    check_ajax_referer('get_assigned_mentor_nonce', 'nonce');
+
+    $child_id = isset($_POST['child_id']) ? intval($_POST['child_id']) : 0;
+    if (!$child_id) {
+        wp_send_json_error(['message' => 'Invalid child ID']);
+        wp_die();
+    }
+
+    // Fetch assigned mentor ID from user meta
+    $mentor_id = get_user_meta($child_id, 'assigned_mentor_id', true);
+    if (!$mentor_id) {
+        wp_send_json_error(['message' => 'No mentor assigned to this child']);
+        wp_die();
+    }
+
+    // Verify mentor exists and has mentor_user role
+    $mentor = get_user_by('id', $mentor_id);
+    if (!$mentor || !in_array('mentor_user', (array)$mentor->roles)) {
+        wp_send_json_error(['message' => 'Assigned mentor not found or invalid']);
+        wp_die();
+    }
+
+    // Fetch mentor working hours
+    global $wpdb;
+    $hours = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$wpdb->prefix}mentor_working_hours WHERE mentor_id = %d", $mentor_id)
+    );
+    $working_hours = $hours ? [
+        'monday' => $hours->monday,
+        'tuesday' => $hours->tuesday,
+        'wednesday' => $hours->wednesday,
+        'thursday' => $hours->thursday,
+        'friday' => $hours->friday,
+        'saturday' => $hours->saturday,
+        'sunday' => $hours->sunday,
+    ] : [];
+
+    wp_send_json_success([
+        'mentor' => [
+            'id' => $mentor->ID,
+            'name' => $mentor->display_name
+        ],
+        'working_hours' => $working_hours
+    ]);
+    wp_die();
+}
+add_action('wp_ajax_get_assigned_mentor', 'handle_get_assigned_mentor');

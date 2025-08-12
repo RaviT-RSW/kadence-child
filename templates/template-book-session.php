@@ -5,7 +5,7 @@
 get_header();
 ?>
 
-<div class="container-fluid my-5">
+<div class="container my-5">
   <?php
   $current_user = wp_get_current_user();
   if (!is_user_logged_in() || !in_array('parent_user', (array)$current_user->roles)) :
@@ -51,37 +51,19 @@ get_header();
   );
   $products = get_posts($args);
 
-  // Fetch mentors with 'mentor_user' role
-  $mentors = get_users(array('role__in' => array('mentor_user')));
-
   // Fetch children of current parent
   $children = get_users(array(
-      'role'    => 'child_user',
-      'meta_key'   => 'assigned_parent_id',
+      'role' => 'child_user',
+      'meta_key' => 'assigned_parent_id',
       'meta_value' => $parent_id,
   ));
 
-  // Fetch mentor working hours
-  $mentor_hours = [];
-  foreach ($mentors as $mentor) {
-      $mentor_id = $mentor->ID;
-      $hours = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}mentor_working_hours WHERE mentor_id = %d", $mentor_id));
-      $mentor_hours[$mentor_id] = $hours ? [
-          'monday' => $hours->monday,
-          'tuesday' => $hours->tuesday,
-          'wednesday' => $hours->wednesday,
-          'thursday' => $hours->thursday,
-          'friday' => $hours->friday,
-          'saturday' => $hours->saturday,
-          'sunday' => $hours->sunday,
-      ] : [];
-  }
+  // Fetch mentor working hours (will be fetched via AJAX for the selected mentor)
   ?>
-
   <div class="row mb-4">
     <div class="col-12">
       <h2 class="mb-1">Book a Session for Your Child</h2>
-      <p class="text-muted">Select a session, mentor, date/time, and child to book.</p>
+      <p class="text-muted">Select a child, mentor, session, and date/time to book.</p>
     </div>
   </div>
 
@@ -89,8 +71,25 @@ get_header();
     <div class="col-12">
       <form id="bookSessionForm" method="post">
         <div class="mb-3">
+          <label for="childSelect" class="form-label">Select Child</label>
+          <select class="form-select" id="childSelect" name="childSelect" required>
+            <option value="">Select a child</option>
+            <?php foreach ($children as $child) : ?>
+              <option value="<?php echo esc_attr($child->ID); ?>"><?php echo ucfirst($child->display_name); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="mentorSelect" class="form-label">Select Mentor</label>
+          <select class="form-select" id="mentorSelect" name="mentorSelect" required disabled>
+            <option value="">Select a child first</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
           <label for="sessionProduct" class="form-label">Select Session</label>
-          <select class="form-select" id="sessionProduct" name="sessionProduct" required>
+          <select class="form-select" id="sessionProduct" name="sessionProduct" required disabled>
             <option value="">Select a session</option>
             <?php foreach ($products as $product) : ?>
               <option value="<?php echo esc_attr($product->ID); ?>"><?php echo esc_html($product->post_title); ?> - $<?php echo get_post_meta($product->ID, '_price', true); ?></option>
@@ -99,31 +98,11 @@ get_header();
         </div>
 
         <div class="mb-3">
-          <label for="mentorSelect" class="form-label">Select Mentor</label>
-          <select class="form-select" id="mentorSelect" name="mentorSelect" required>
-            <option value="">Select a mentor</option>
-            <?php foreach ($mentors as $mentor) : ?>
-              <option value="<?php echo esc_attr($mentor->ID); ?>"><?php echo esc_html($mentor->display_name); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-
-        <div class="mb-3">
           <label for="sessionDateTime" class="form-label">Select Date and Time</label>
-          <input type="text" class="form-control" id="sessionDateTime" name="sessionDateTime" placeholder="Select date and time" required>
+          <input type="text" class="form-control" id="sessionDateTime" name="sessionDateTime" placeholder="Select date and time" required disabled>
         </div>
 
-        <div class="mb-3">
-          <label for="childSelect" class="form-label">Select Child</label>
-          <select class="form-select" id="childSelect" name="childSelect" required>
-            <option value="">Select a child</option>
-            <?php foreach ($children as $child) : ?>
-              <option value="<?php echo esc_attr($child->ID); ?>"><?php echo esc_html($child->display_name); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Book Session</button>
+        <button type="submit" class="btn btn-primary" disabled>Book Session</button>
       </form>
     </div>
   </div>
@@ -131,8 +110,14 @@ get_header();
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const mentorHours = <?php echo json_encode($mentor_hours); ?>;
     let currentMentorId = null;
+    let mentorHours = {};
+
+    const childSelect = document.getElementById('childSelect');
+    const mentorSelect = document.getElementById('mentorSelect');
+    const sessionProduct = document.getElementById('sessionProduct');
+    const sessionDateTime = document.getElementById('sessionDateTime');
+    const submitButton = document.querySelector('#bookSessionForm button[type="submit"]');
 
     // Initialize Flatpickr with all dates and times disabled by default
     const fp = flatpickr("#sessionDateTime", {
@@ -161,9 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDisabledDates(instance);
         },
         onReady: function(selectedDates, dateStr, instance) {
-            if (!currentMentorId) {
-                disableTimeInputs(true);
-            }
             updateDisabledDates(instance); // Initial disable setup
         }
     });
@@ -229,9 +211,68 @@ document.addEventListener('DOMContentLoaded', function() {
         disableTimeInputs(false); // Enable time inputs when valid mentor data exists
     }
 
+    // Update mentor dropdown based on child selection via AJAX
+    childSelect.addEventListener('change', function() {
+        const childId = this.value;
+        mentorSelect.innerHTML = '<option value="">Loading mentors...</option>';
+        mentorSelect.disabled = true;
+        sessionProduct.disabled = true;
+        sessionDateTime.disabled = true;
+        submitButton.disabled = true;
+        currentMentorId = null;
+        mentorHours = {};
+
+        if (!childId) {
+            mentorSelect.innerHTML = '<option value="">Select a child first</option>';
+            fp.set("disable", []);
+            disableTimeInputs(true);
+            return;
+        }
+
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                action: 'get_assigned_mentor',
+                child_id: childId,
+                nonce: '<?php echo wp_create_nonce('get_assigned_mentor_nonce'); ?>'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            mentorSelect.innerHTML = '<option value="">Select a mentor</option>';
+            if (data.success && data.data.mentor) {
+                const mentor = data.data.mentor;
+                mentorSelect.innerHTML = `<option value="${mentor.id}">${mentor.name}</option>`;
+                mentorSelect.disabled = false;
+                sessionProduct.disabled = false;
+                sessionDateTime.disabled = false;
+                submitButton.disabled = false;
+                currentMentorId = mentor.id;
+                mentorHours[currentMentorId] = data.data.working_hours || {};
+                updateDisabledDates(fp);
+            } else {
+                mentorSelect.innerHTML = '<option value="">No mentor assigned</option>';
+                mentorSelect.disabled = true;
+                fp.set("disable", []);
+                disableTimeInputs(true);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            mentorSelect.innerHTML = '<option value="">Error loading mentors</option>';
+            showNotification('Failed to load mentor: ' + error.message, 'danger');
+        });
+    });
+
     // Update disable dates and times when mentor changes
-    document.getElementById('mentorSelect').addEventListener('change', function() {
+    mentorSelect.addEventListener('change', function() {
         currentMentorId = this.value;
+        sessionProduct.disabled = !currentMentorId;
+        sessionDateTime.disabled = !currentMentorId;
+        submitButton.disabled = !currentMentorId;
         updateDisabledDates(fp);
     });
 
@@ -253,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Redirect to checkout page
                 window.location.href = '<?php echo wc_get_checkout_url(); ?>';
             } else {
-                showNotification('Failed to book session: ' + data.message, 'danger');
+                showNotification('Failed to book session: ' + (data.data?.message || 'Unknown error'), 'danger');
             }
         })
         .catch(error => {
@@ -290,6 +331,10 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 #workingHoursAccordion .row {
     align-items: center;
+}
+.form-select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
 }
 </style>
 
