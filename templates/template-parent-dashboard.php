@@ -270,6 +270,62 @@ get_header();
           </div>
         </div>
 
+        <!-- Mentors List -->
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h4 class="card-title mb-3 fw-bold text-primary">Mentors</h4>
+                    <?php 
+                    if (!empty($children)) : ?>
+                        <div class="mentor-list">
+                            <?php foreach ($children as $child) : 
+                                $child_id = $child->ID;
+                                $mentor_id = get_user_meta($child_id, 'assigned_mentor_id', true);
+                                ?>
+                                <div class="child-section mb-4">
+                                    <h5 class="mb-3"><?php echo esc_html($child->display_name); ?> (ID: <?php echo esc_html($child_id); ?>)</h5>
+                                    <?php if ($mentor_id) : 
+                                        $mentor = get_user_by('id', $mentor_id);
+                                        if ($mentor) :
+                                            $mentor_phone = get_user_meta($mentor_id, 'phone', true);
+                                            ?>
+                                            <div class="mentor-item mb-3 p-3 border rounded">
+                                                <div class="row g-3 align-items-center">
+                                                    <div class="col-4">
+                                                        <p class="mb-1"><strong>Mentor:</strong> <span class="text-primary fw-medium"><?php echo esc_html($mentor->display_name); ?> (ID: <?php echo esc_html($mentor_id); ?>)</span></p>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <p class="mb-1"><strong>Email:</strong> <span class="text-secondary"><?php echo esc_html($mentor->user_email); ?></span></p>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <?php if ($mentor_phone) : ?>
+                                                            <a href="https://wa.me/<?php echo esc_attr($mentor_phone); ?>" class="btn btn-sm btn-success" target="_blank">
+                                                                <i class="fab fa-whatsapp me-1"></i>Contact via WhatsApp
+                                                            </a>
+                                                        <?php else : ?>
+                                                            <button class="btn btn-sm btn-secondary" disabled>
+                                                                <i class="fab fa-whatsapp me-1"></i>No Phone Number
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php else : ?>
+                                            <p class="text-muted">Mentor not found (ID: <?php echo esc_html($mentor_id); ?>)</p>
+                                        <?php endif; ?>
+                                    <?php else : ?>
+                                        <p class="text-muted">No mentor assigned to <?php echo esc_html($child->display_name); ?>.</p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else : ?>
+                        <p class="text-muted text-center">No children assigned to your account.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
         <!-- Reschedule Modal -->
         <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
