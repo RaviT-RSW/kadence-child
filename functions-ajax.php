@@ -341,3 +341,102 @@ function handle_get_assigned_mentor() {
     wp_die();
 }
 add_action('wp_ajax_get_assigned_mentor', 'handle_get_assigned_mentor');
+
+
+/**
+ * Handles AJAX request to get mentor appointment history.
+ *
+ * @since 1.0.0
+ */
+function handle_get_mentor_appointment_history() {
+    check_ajax_referer('mentor_appointment_history_nonce', 'nonce');
+
+    global $wpdb;
+    $mentor_id = get_current_user_id();
+    if (!in_array('mentor_user', (array)wp_get_current_user()->roles)) {
+        wp_send_json_error(['message' => 'Unauthorized access']);
+        wp_die();
+    }
+
+    $year = isset($_POST['year']) ? intval($_POST['year']) : date('Y');
+    $month = isset($_POST['month']) ? sanitize_text_field($_POST['month']) : date('F');
+    $page = isset($_POST['page']) ? max(1, intval($_POST['page'])) : 1;
+    $per_page = 10;
+
+    // Base query for counts and sums
+    $base_query = "SELECT am.order_id, am.appointment_date_time, am.child_id FROM {$wpdb->prefix}assigned_mentees am WHERE am.mentor_id = %d";
+    $params = [$mentor_id];
+
+    if ($month !== 'all') {
+        $month_num = date('m', strtotime($month));
+        $base_query .= " AND YEAR(am.appointment_date_time) = %d AND MONTHNAME(am.appointment_date_time) = %s";
+        $params[] = $year;
+        $params[] = $month;
+    } else {
+        $base_query .= " AND YEAR(am.appointment_date_time) = %d";
+        $params[] = $year;
+    }
+
+    // Get all order_ids for stats
+    $all_orders = $wpdb->get_results($wpdb->prepare($base_query, $params));
+
+    // Calculate stats
+    $total_sessions = count($all_orders);
+    $hourly_rate = floatval(get_user_meta($mentor_id, 'mentor_hourly_rate', true)) ?: 0;
+    $total_duration = 0;
+
+    foreach ($all_orders as $order_record) {
+        $order = wc_get_order($order_record->order_id);
+        if (!$order) continue;
+
+        $item = reset($order->get_items());
+        if (!$item) continue;
+
+        $duration = intval($item->get_meta('appointment_duration')) ?: 0;
+        $total_duration += $duration;
+    }
+
+    $total_hours = $total_duration / 60;
+    $total_earnings = $total_hours * $hourly_rate;
+
+    // Paged query for table
+    $paged_query = $base_query . " ORDER BY am.appointment_date_time DESC LIMIT %d OFFSET %d";
+    $paged_params = array_merge($params, [$per_page, ($page - 1) * $per_page]);
+    $paged_orders = $wpdb->get_results($wpdb->prepare($paged_query, $paged_params));
+
+    // Process paged appointments for table
+    $appointment_data = [];
+    foreach ($paged_orders as $index => $record) {
+        $order = wc_get_order($record->order_id);
+        if (!$order) continue;
+
+        $item = reset($order->get_items());
+        if (!$item) continue;
+        $child = get_user_by('id', $record->child_id);
+        $duration = intval($item->get_meta('appointment_duration')) ?: 0;
+        $earnings = ($duration / 60) * $hourly_rate;
+
+        $appointment_data[] = [
+            'title' => $item->get_name() ?: 'Unknown Product',
+            'attende_name' => $child ? ucfirst($child->display_name) : 'Unknown',
+            'date_time' => $item->get_meta('session_date_time') ? date('M d, Y - h:i A', strtotime($item->get_meta('session_date_time'))) : 'N/A',
+            'duration' => $duration,
+            'earnings' => number_format($earnings, 2),
+            'status' => $item->get_meta('appointment_status') ?: 'pending',
+            'view_url' => esc_url(add_query_arg(['order_id' => $record->order_id, 'item_id' => $item->get_id()], site_url('/appointment-details/')))
+        ];
+    }
+
+    // Prepare response
+    wp_send_json_success([
+        'hourly_rate' => number_format($hourly_rate, 2),
+        'total_sessions' => $total_sessions,
+        'total_hours' => number_format($total_hours, 2),
+        'total_earnings' => number_format($total_earnings, 2),
+        'appointments' => $appointment_data,
+        'total_pages' => ceil($total_sessions / $per_page),
+        'current_page' => $page
+    ]);
+    wp_die();
+}
+add_action('wp_ajax_get_mentor_appointment_history', 'handle_get_mentor_appointment_history');

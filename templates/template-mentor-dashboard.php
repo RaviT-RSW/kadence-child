@@ -308,7 +308,7 @@ $mentees = $wpdb->get_results(
                       <tr>
                         <td><?php echo esc_html(ucfirst($mentee->display_name)) . ' (' . esc_html($mentee->ID) . ')'; ?></td>
                         <td>
-                          <a href="<?php echo esc_url(add_query_arg('child_id', $mentee->ID, site_url('/appointment-history/'))); ?>" class="btn btn-sm btn-primary">View</a>
+                          <a href="<?php echo esc_url(add_query_arg('child_id', $mentee->ID, site_url('/mentee-appointment-history/'))); ?>" class="btn btn-sm btn-primary">View</a>
                         </td>
                       </tr>
                     <?php endforeach; ?>

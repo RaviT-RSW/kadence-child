@@ -213,6 +213,7 @@ function handle_add_session_to_cart() {
         'child_id' => $child_id,
         'session_date_time' => $session_date_time,
         'appointment_status' => $appointment_status,
+        'appointment_duration' => 60
     ));
 
     if ($cart_item_key) {
@@ -236,6 +237,9 @@ function transfer_cart_item_meta_to_order($item, $cart_item_key, $values, $order
     }
     if (isset($values['appointment_status'])) {
         $item->update_meta_data('appointment_status', $values['appointment_status']);
+    }
+    if (isset($values['appointment_duration'])) {
+        $item->update_meta_data('appointment_duration', $values['appointment_duration']);
     }
 }
 
@@ -320,6 +324,7 @@ function add_assigned_mentees_record($order_id, $posted_data) {
             // Retrieve mentor_id and child_id from item meta
             $mentor_id = $item->get_meta('mentor_id');
             $child_id = $item->get_meta('child_id');
+            $session_date_time = $item->get_meta('session_date_time');
 
             // Check if mentor_id and child_id exist
             if ($mentor_id && $child_id) {
@@ -330,8 +335,9 @@ function add_assigned_mentees_record($order_id, $posted_data) {
                         'mentor_id' => $mentor_id,
                         'child_id' => $child_id,
                         'order_id' => $order_id,
+                        'appointment_date_time' => $session_date_time,
                     ),
-                    array('%d', '%d', '%d')
+                    array('%d', '%d', '%d', '%s')
                 );
 
                 if ($wpdb->last_error) {

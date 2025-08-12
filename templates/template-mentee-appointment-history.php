@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Appointment History
+ * Template Name: Mentee Appointment History
  */
 get_header();
 
