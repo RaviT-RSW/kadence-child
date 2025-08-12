@@ -768,3 +768,250 @@ add_action('wp_head', 'help_requests_admin_styles');
 
 
 // Need Help section for child end
+// Chat section for child
+
+function create_wise_chat_user_from_code($child_wp_id,$mentor_wp_id)
+{
+  global $wpdb;
+
+  $child_detail = get_userdata($child_wp_id);
+  $child_name = $child_detail->data->user_login;
+
+  $mentor_detail = get_userdata($mentor_wp_id);
+  $mentor_name = $mentor_detail->data->user_login;
+
+  // $channel_name = $child_name .' '.$mentor_name;
+
+  $child_id = insert__wise_chat_user($child_wp_id);
+  $mentor_id = insert__wise_chat_user($mentor_wp_id);
+
+  $channel_name = 'child_'.$child_wp_id.'_mentor_'.$mentor_wp_id;
+  $table_name = $wpdb->prefix . 'wise_chat_channels';
+
+  // Check if channel already exists
+  $existing_channel = $wpdb->get_row($wpdb->prepare(
+    "SELECT * FROM $table_name WHERE name = %s", $channel_name
+  ));
+
+  if ($existing_channel) {
+    // Channel already exists
+    // echo "Channel already exists with ID: " . $existing_channel->id;
+    $channel_id = $existing_channel->id;
+  } else {
+    // Create new channel
+    $data = array(
+      'name' => $channel_name,
+      'type' => '2',
+      'configuration' => '{
+        "enableImages": false,
+        "enableAttachments": false,
+        "enableVoiceMessages": true
+      }',
+    );
+
+    $result = $wpdb->insert(
+      $table_name,
+      $data,
+      array(
+        '%s',
+        '%d',
+        '%s',
+      )
+    );
+
+    if ($wpdb->last_error) {
+      // Handle error if insertion fails
+      echo "Error: " . $wpdb->last_error;
+      return;
+    } else {
+      $channel_id = $wpdb->insert_id;
+      // echo "Channel created successfully with ID: " . $channel_id;
+    }
+  }
+
+  $user_ids = [ $child_id, $mentor_id, 1 ];
+  add_member_wise_chat($channel_id, $user_ids);
+}
+
+function insert__wise_chat_user($user_id)
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'wise_chat_users';
+
+  // Check if user already exists
+  $existing_user = $wpdb->get_row($wpdb->prepare(
+    "SELECT * FROM $table_name WHERE wp_id = %d", $user_id
+  ));
+
+  if ($existing_user) {
+    return $existing_user->id;
+  }
+
+  $child_detail = get_userdata($user_id);
+
+  // Check if user data is valid
+  if (!$child_detail) {
+    return "Error: Invalid user ID";
+  }
+
+  $data = array(
+    'wp_id' => $child_detail->ID,
+    'name' => $child_detail->data->user_login,
+    'session_id' => $child_detail->getSessionId(),
+    'external_type' => NULL,
+    'external_id' => NULL,
+    'avatar_url' => NULL,
+    'profile_url' => NULL,
+    'ip' => NULL,
+    'created' => current_time('mysql'),
+    'data' => []
+  );
+
+  $wpdb->insert(
+    $table_name,
+    $data,
+    array(
+      '%d',
+      '%s',
+      '%s',
+      '%s',
+      '%s',
+      '%s',
+      '%s',
+      '%s',
+      '%s',
+      '%s'
+    )
+  );
+
+  if ($wpdb->last_error) {
+    // Handle error if insertion fails
+    return "Error: " . $wpdb->last_error;
+  } else {
+    return $wpdb->insert_id;
+  }
+
+}
+
+function add_member_wise_chat($channel_id,$user_ids)
+{
+  // Add members in chat
+  foreach($user_ids as $user_id)
+  {
+    global $wpdb;
+
+    // Validate input parameters
+    if (!is_numeric($channel_id) || !is_numeric($user_id)) {
+      return "Error: Invalid channel_id or user_id";
+    }
+
+    // Table 1: wise_chat_channel_members
+    $table_members = $wpdb->prefix . 'wise_chat_channel_members';
+
+    // Check if member already exists in channel_members table
+    $existing_member = $wpdb->get_row($wpdb->prepare(
+      "SELECT * FROM $table_members WHERE channel_id = %d AND user_id = %d",
+      $channel_id,
+      $user_id
+    ));
+
+    if (!$existing_member) {
+      // Insert into channel_members table
+      $data_members = array(
+        'channel_id' => $channel_id,
+        'user_id' => $user_id,
+        'confirmed' => 1, // Use integer instead of string
+        'type' => 2, // Use integer instead of string
+      );
+
+      $result_members = $wpdb->insert(
+        $table_members,
+        $data_members,
+        array('%d', '%d', '%d', '%d')
+      );
+
+      if ($wpdb->last_error) {
+        return "Error inserting into channel_members: " . $wpdb->last_error;
+      }
+
+      $member_insert_id = $wpdb->insert_id;
+      echo "Member added to channel_members with ID: " . $member_insert_id . "\n";
+    } else {
+      echo "Member already exists in channel_members table\n";
+    }
+
+    // Table 2: wise_chat_user_channels
+    $table_user_channels = $wpdb->prefix . 'wise_chat_user_channels';
+
+    // Check if relationship already exists in user_channels table
+    $existing_user_channel = $wpdb->get_row($wpdb->prepare(
+      "SELECT * FROM $table_user_channels WHERE channel_id = %d AND user_id = %d",
+      $channel_id,
+      $user_id
+    ));
+
+    if (!$existing_user_channel) {
+      // Insert into user_channels table
+      $result_user_channels = $wpdb->insert(
+        $table_user_channels,
+        array(
+          'channel_id' => $channel_id,
+          'user_id' => $user_id,
+        ), array('%d', '%d')
+      );
+
+      if ($wpdb->last_error) {
+        return "Error inserting into user_channels: " . $wpdb->last_error;
+      }
+
+      $user_channel_insert_id = $wpdb->insert_id;
+      echo "User-channel relationship added with ID: " . $user_channel_insert_id . "\n";
+    } else {
+      echo "User-channel relationship already exists\n";
+    }
+  }
+}
+
+function get_user_chat_channels() {
+  global $wpdb;
+  $user_id = get_current_user_id();
+
+  $wise_chat_user_id = $wpdb->get_col(
+    $wpdb->prepare(
+      "SELECT id FROM {$wpdb->prefix}wise_chat_users WHERE wp_id = %d", $user_id
+    )
+  );
+
+  if ( ! $wise_chat_user_id ) {
+    return [];
+  }
+
+  $table = $wpdb->prefix . 'wise_chat_user_channels';
+  $channels_table = $wpdb->prefix . 'wise_chat_channels';
+
+  $results = $wpdb->get_results(
+    $wpdb->prepare(
+      "SELECT c.id, c.name
+      FROM $table uc
+      INNER JOIN $channels_table c ON uc.channel_id = c.id
+      WHERE uc.user_id = %d",
+      $wise_chat_user_id
+    )
+  );
+
+  return $results;
+}
+
+function show_user_chat_channels() {
+  $channels = get_user_chat_channels();
+
+  if ( empty($channels) ) {
+    echo '<p>No channels found.</p>';
+    return;
+  }
+
+  echo '<div class="user-chat-list">';
+  echo do_shortcode('[wise-chat show_users="1" ]');
+  echo '</div>';
+}
+add_shortcode('user_chat_channels', 'show_user_chat_channels');

@@ -318,6 +318,18 @@ $mentees = $wpdb->get_results(
         </div>
       </div>
     </div>
+
+    <div class="col-12">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h4 class="card-title mb-3 fw-bold text-primary">💬 Chat with Your Child</h4>
+          <div class="alert alert-secondary" role="alert">
+            <?php echo do_shortcode('[user_chat_channels]'); ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 

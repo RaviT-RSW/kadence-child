@@ -188,7 +188,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
         <div class="card-body">
           <h4 class="card-title mb-3 fw-bold text-primary">💬 Chat with Your Mentor</h4>
           <div class="alert alert-secondary" role="alert">
-            Chat interface will appear here.
+            <?php echo do_shortcode('[user_chat_channels]'); ?>
           </div>
         </div>
       </div>

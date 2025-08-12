@@ -74,6 +74,8 @@ function assign_mentors_page() {
             // Update user meta for child
             update_user_meta($child_id, 'assigned_mentor_id', $mentor_id);
 
+            create_wise_chat_user_from_code($child_id,$mentor_id);
+
             $message = '<div class="notice notice-success is-dismissible"><p>Mentor assigned successfully!</p></div>';
         }
     }
