@@ -432,7 +432,15 @@ function display_help_requests_page() {
 								</select>
 								<input type="hidden" name="update_status" value="1">
 							</form>
-							<button type="button" class="delete-btn" onclick="showDeleteConfirmation('<?php echo esc_js($request['id']); ?>', '<?php echo esc_js($request['user_name']); ?>')"> 🗑️ Delete </button>
+							<div style="margin-top: 2px;display: inline;position: relative; bottom: -9px;">
+								<button type="button" class="delete-btn" style="border: none;background: none; cursor: pointer;" onclick="showDeleteConfirmation('<?php echo esc_js($request['id']); ?>', '<?php echo esc_js($request['user_name']); ?>')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								  <polyline points="3 6 5 6 21 6"></polyline>
+								  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+								  <line x1="10" y1="11" x2="10" y2="17"></line>
+								  <line x1="14" y1="11" x2="14" y2="17"></line>
+								</svg>
+								</button>
+							</div>
 						</td>
 					</tr>
 					<?php endforeach;
@@ -780,12 +788,13 @@ function create_wise_chat_user_from_code($child_wp_id,$mentor_wp_id)
   $mentor_detail = get_userdata($mentor_wp_id);
   $mentor_name = $mentor_detail->data->user_login;
 
-  // $channel_name = $child_name .' '.$mentor_name;
+  $channel_child_menor_name = $child_name .'-'.$mentor_name;
 
   $child_id = insert__wise_chat_user($child_wp_id);
   $mentor_id = insert__wise_chat_user($mentor_wp_id);
 
-  $channel_name = 'child_'.$child_wp_id.'_mentor_'.$mentor_wp_id;
+  $channel_name = 'child_'.$child_wp_id.'_mentor_'.$mentor_wp_id.' '.$channel_child_menor_name;
+
   $table_name = $wpdb->prefix . 'wise_chat_channels';
 
   // Check if channel already exists
@@ -935,7 +944,7 @@ function add_member_wise_chat($channel_id,$user_ids)
       }
 
       $member_insert_id = $wpdb->insert_id;
-      echo "Member added to channel_members with ID: " . $member_insert_id . "\n";
+      // echo "Member added to channel_members with ID: " . $member_insert_id . "\n";
     } else {
       echo "Member already exists in channel_members table\n";
     }
@@ -965,7 +974,7 @@ function add_member_wise_chat($channel_id,$user_ids)
       }
 
       $user_channel_insert_id = $wpdb->insert_id;
-      echo "User-channel relationship added with ID: " . $user_channel_insert_id . "\n";
+      // echo "User-channel relationship added with ID: " . $user_channel_insert_id . "\n";
     } else {
       echo "User-channel relationship already exists\n";
     }
@@ -1011,7 +1020,7 @@ function show_user_chat_channels() {
   }
 
   echo '<div class="user-chat-list">';
-  echo do_shortcode('[wise-chat show_users="1" ]');
+  echo do_shortcode('[wise-chat]');
   echo '</div>';
 }
 add_shortcode('user_chat_channels', 'show_user_chat_channels');
