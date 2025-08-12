@@ -153,16 +153,35 @@ if ($records) {
     }
 </style>
 
-<section class="entry-hero page-hero-section entry-hero-layout-standard">
-    <div class="entry-hero-container-inner">
-        <div class="hero-section-overlay"></div>
-        <div class="hero-container site-container">
-            <header class="entry-header page-title title-align-inherit title-tablet-align-inherit title-mobile-align-inherit">
-                <h1 class="entry-title">Appointment History</h1>
-            </header>
-        </div>
+
+<div class="container">
+
+  <?php
+    if (!isset($_GET['child_id']) || !is_numeric($_GET['child_id'])) {
+        return '<p>No user ID provided.</p>';
+    }
+
+    $goals = get_child_goal($_GET['child_id']);
+
+    ?>
+    <!-- Target Goals -->
+    <div class="row g-4 mb-4">
+        <?php foreach ($goals as $index => $goal) : ?>
+            <div class="col-md-4">
+                <div class="card border-success shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">🎯 Goal <?php echo $index + 1; ?></h5>
+                        <p class="card-text"><?php echo !empty($goal) ? esc_html($goal) : 'No goal set.'; ?></p>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
-</section>
+
+    <?php echo do_shortcode('[mentor_set_goals_form]') ?>
+
+</div>
+
 
 <div class="appointment-history-container my-5">
     <div class="header-section">

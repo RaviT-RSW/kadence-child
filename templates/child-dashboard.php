@@ -28,33 +28,20 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
     <p class="text-muted">Here's what's coming up for you.</p>
   </div>
 
-  <!-- Target Goals -->
-  <div class="row g-4 mb-4">
-    <div class="col-md-4">
-      <div class="card border-success shadow-sm h-100">
-        <div class="card-body">
-          <h5 class="card-title">🎯 Goal 1</h5>
-          <p class="card-text">[Goal description here]</p>
-        </div>
-      </div>
+  <?php $goals = get_child_goal(); ?>
+    <!-- Target Goals -->
+    <div class="row g-4 mb-4">
+        <?php foreach ($goals as $index => $goal) : ?>
+            <div class="col-md-4">
+                <div class="card border-success shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">🎯 Goal <?php echo $index + 1; ?></h5>
+                        <p class="card-text"><?php echo !empty($goal) ? esc_html($goal) : 'No goal set.'; ?></p>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
-    <div class="col-md-4">
-      <div class="card border-success shadow-sm h-100">
-        <div class="card-body">
-          <h5 class="card-title">🎯 Goal 2</h5>
-          <p class="card-text">[Goal description here]</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card border-success shadow-sm h-100">
-        <div class="card-body">
-          <h5 class="card-title">🎯 Goal 3</h5>
-          <p class="card-text">[Goal description here]</p>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <?php
   $sessions = array();

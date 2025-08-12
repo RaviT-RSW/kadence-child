@@ -1,7 +1,5 @@
 <?php
 
-wp_enqueue_style('child-user-style', get_stylesheet_directory_uri() . '/assets/css/child-style.css');
-
 // Need help section for child
 // 1. Handle form submission
 function handle_help_form_submission() {
