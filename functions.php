@@ -15,6 +15,7 @@ function kadence_child_enqueue_styles() {
 
     wp_enqueue_style('kadence-child-style', get_stylesheet_directory_uri() . '/assets/css/style.css');
 
+    wp_enqueue_style('child-user-style', get_stylesheet_directory_uri() . '/assets/css/child-style.css');
 
     wp_enqueue_script('bootstrap-js', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js');
     wp_enqueue_script('fullcalendar-js', 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js');
