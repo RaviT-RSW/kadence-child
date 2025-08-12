@@ -3,18 +3,31 @@
  * Template Name: Appointment Details
  */
 get_header();
+
+// Retrieve order_id and item_id from URL parameters
+$order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+
+// Fetch feedback and expense data
+global $wpdb;
+$feedback = $wpdb->get_row(
+    $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}appointment_feedback WHERE order_id = %d",
+        $order_id
+    )
+);
+$expense = $wpdb->get_row(
+    $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}appointment_expense WHERE order_id = %d",
+        $order_id
+    )
+);
 ?>
-
-
 
 <div class="container my-5">
   <div class="row">
     <div class="col-12">
       <?php
-      // Retrieve order_id and item_id from URL parameters
-      $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
-      $item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
-
       // Fetch the order object
       $order = wc_get_order($order_id);
       if ($order) {
@@ -28,12 +41,12 @@ get_header();
               $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
 
               $appointment_status_class = '';
-              if ( $appointment_status === 'approved' ) {
-                $appointment_status_class = 'badge bg-success text-light';
-              } elseif ( $appointment_status === 'cancelled' ) {
-                $appointment_status_class = 'badge bg-danger text-light';
+              if ($appointment_status === 'approved') {
+                  $appointment_status_class = 'badge bg-success text-light';
+              } elseif ($appointment_status === 'cancelled') {
+                  $appointment_status_class = 'badge bg-danger text-light';
               } else {
-                $appointment_status_class = 'badge bg-info text-light';
+                  $appointment_status_class = 'badge bg-info text-light';
               }
 
               // Get mentor and child names
@@ -105,6 +118,69 @@ get_header();
             </div>
           </div>
 
+          <?php if ($appointment_status === 'finished') : ?>
+          <h4 class="card-title mt-4 mb-3 fw-bold text-primary">Feedback</h4>
+          <div class="row g-3">
+            <?php if ($feedback) : ?>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Short Note:</strong> <span class="text-secondary"><?php echo esc_html($feedback->feedback_short_note ?: 'N/A'); ?></span></p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Voice Note:</strong>
+                  <?php if ($feedback->feedback_voice_notes) : ?>
+                    <a href="<?php echo esc_url($feedback->feedback_voice_notes); ?>" target="_blank" class="text-primary">Listen to Voice Note</a>
+                  <?php else : ?>
+                    <span class="text-secondary">No voice note available</span>
+                  <?php endif; ?>
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Created At:</strong> <span class="text-secondary"><?php echo esc_html(date('F d, Y, h:i A', strtotime($feedback->created_at))); ?></span></p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Updated At:</strong> <span class="text-secondary"><?php echo esc_html(date('F d, Y, h:i A', strtotime($feedback->updated_at))); ?></span></p>
+              </div>
+            <?php else : ?>
+              <div class="col-12">
+                <p class="mb-2 text-secondary">No feedback available.</p>
+              </div>
+            <?php endif; ?>
+          </div>
+
+          <h4 class="card-title mt-4 mb-3 fw-bold text-primary">Expense</h4>
+          <div class="row g-3">
+            <?php if ($expense) : ?>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Amount:</strong> <span class="text-success fw-medium"><?php echo wc_price($expense->expense_amount); ?></span></p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Description:</strong> <span class="text-secondary"><?php echo esc_html($expense->expense_description ?: 'N/A'); ?></span></p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Receipt:</strong>
+                  <?php if ($expense->expense_receipt) : ?>
+                    <a href="<?php echo esc_url($expense->expense_receipt); ?>" target="_blank" class="text-primary">View Receipt</a>
+                  <?php else : ?>
+                    <span class="text-secondary">No receipt uploaded</span>
+                  <?php endif; ?>
+                </p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Status:</strong> <span class="badge <?php echo $expense->expense_status === 'approved' ? 'bg-success' : ($expense->expense_status === 'rejected' ? 'bg-danger' : 'bg-info'); ?> text-light"><?php echo esc_html(ucfirst($expense->expense_status)); ?></span></p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Created At:</strong> <span class="text-secondary"><?php echo esc_html(date('F d, Y, h:i A', strtotime($expense->created_at))); ?></span></p>
+              </div>
+              <div class="col-md-6">
+                <p class="mb-2"><strong>Updated At:</strong> <span class="text-secondary"><?php echo esc_html(date('F d, Y, h:i A', strtotime($expense->updated_at))); ?></span></p>
+              </div>
+            <?php else : ?>
+              <div class="col-12">
+                <p class="mb-2 text-secondary">No expense available.</p>
+              </div>
+            <?php endif; ?>
+          </div>
+          <?php endif; ?>
 
           <h4 class="card-title mt-4 mb-3 fw-bold text-primary">Actions</h4>
           <div class="d-flex gap-3">
@@ -144,7 +220,12 @@ get_header();
 .alert {
   font-size: 1rem;
 }
+.text-primary {
+  color: #007bff !important;
+}
+.text-secondary {
+  color: #6c757d !important;
+}
 </style>
-
 
 <?php get_footer(); ?>
