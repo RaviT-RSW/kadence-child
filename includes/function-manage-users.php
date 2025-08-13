@@ -61,6 +61,12 @@ function urmentor_manage_users_page() {
         }
     }
 
+    // Check if viewing mentor calendar
+    if (isset($_GET['action']) && $_GET['action'] === 'view_calendar' && isset($_GET['user_id'])) {
+        urmentor_mentor_calendar_page(intval($_GET['user_id']));
+        return;
+    }
+
     // Get filter parameter
     $filter = isset($_GET['filter']) ? sanitize_text_field($_GET['filter']) : 'all';
     
@@ -163,6 +169,11 @@ function urmentor_manage_users_page() {
                                     <span class="edit">
                                         <a href="<?php echo admin_url('admin.php?page=urmentor-add-user&action=edit&user_id=' . $user->ID); ?>">Edit</a> | 
                                     </span>
+                                    <?php if ($primary_role === 'mentor_user'): ?>
+                                        <span class="view_calendar">
+                                            <a href="<?php echo admin_url('admin.php?page=urmentor-manage-users&action=view_calendar&user_id=' . $user->ID); ?>">View Calendar</a> | 
+                                        </span>
+                                    <?php endif; ?>
                                     <?php if (current_user_can('delete_users') && $user->ID !== get_current_user_id()): ?>
                                     <span class="delete">
                                         <a href="<?php echo wp_nonce_url(admin_url('admin.php?page=urmentor-manage-users&action=delete&user_id=' . $user->ID), 'delete-user_' . $user->ID); ?>" 
@@ -198,6 +209,246 @@ function urmentor_manage_users_page() {
         </table>
     </div>
     <?php
+}
+
+/**
+ * Mentor Calendar Page
+ */
+function urmentor_mentor_calendar_page($mentor_id) {
+    // Get mentor data
+    $mentor = get_user_by('id', $mentor_id);
+    if (!$mentor || !in_array('mentor_user', $mentor->roles)) {
+        echo '<div class="notice notice-error is-dismissible"><p>Invalid mentor selected.</p></div>';
+        return;
+    }
+
+    // Get sessions for this mentor
+    $session_data = urmentor_get_mentor_sessions($mentor_id);
+    $calendar_events = array();
+    foreach ($session_data['sessions'] as $session) {
+        $calendar_events[] = array(
+            'title' => esc_js($session['child_name'] . ' with ' . $session['mentor_name']),
+            'start' => $session['date_time']->format('Y-m-d\TH:i:s'),
+            'extendedProps' => array(
+                'mentor_name' => esc_js($session['mentor_name']),
+                'child_name' => esc_js($session['child_name']),
+                'appointment_status' => esc_js($session['appointment_status']),
+                'zoom_link' => esc_url($session['zoom_link']),
+                'order_id' => $session['order_id'],
+                'item_id' => $session['item_id'],
+            ),
+            'backgroundColor' => $session['appointment_status'] === 'completed' ? '#00a32a' : ($session['appointment_status'] === 'cancelled' ? '#d63638' : '#0073aa'),
+            'borderColor' => $session['appointment_status'] === 'completed' ? '#00a32a' : ($session['appointment_status'] === 'cancelled' ? '#d63638' : '#0073aa'),
+        );
+    }
+    ?>
+    <div class="wrap urmentor-dashboard">
+        <h1><?php echo esc_html($mentor->display_name); ?>'s Calendar</h1>
+        <p><a href="<?php echo admin_url('admin.php?page=urmentor-manage-users&filter=mentors'); ?>" class="button button-secondary">Back to Manage Users</a></p>
+        
+        <!-- Calendar Section -->
+        <div class="calendar-section">
+            <div id="urmentor-mentor-calendar"></div>
+        </div>
+    </div>
+
+    <!-- FullCalendar CSS and JS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('urmentor-mentor-calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: <?php echo json_encode($calendar_events); ?>,
+                eventDidMount: function(info) {
+                    // Add tooltip with session details
+                    var tooltipContent = `
+                        <strong>Mentee:</strong> ${info.event.extendedProps.child_name}<br>
+                        <strong>Mentor:</strong> ${info.event.extendedProps.mentor_name}<br>
+                        <strong>Status:</strong> ${info.event.extendedProps.appointment_status}<br>
+                        <strong>Order ID:</strong> ${info.event.extendedProps.order_id}<br>
+                        ${info.event.extendedProps.zoom_link ? '<a href="' + info.event.extendedProps.zoom_link + '" target="_blank">Join Zoom</a>' : ''}
+                    `;
+                    tippy(info.el, {
+                        content: tooltipContent,
+                        allowHTML: true,
+                        theme: 'light-border',
+                    });
+                },
+                height: '700px',
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }
+            });
+            calendar.render();
+        });
+    </script>
+
+    <!-- Tippy.js for tooltips -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <style>
+    .urmentor-dashboard {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }
+
+    .calendar-section {
+        margin: 30px 0;
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    #urmentor-mentor-calendar {
+        max-width: 100%;
+        margin-top: 20px;
+    }
+
+    /* FullCalendar Custom Styles */
+    .fc {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }
+
+    .fc .fc-button {
+        background: #0073aa;
+        border: none;
+        color: white;
+        border-radius: 4px;
+        padding: 6px 12px;
+    }
+
+    .fc .fc-button:hover {
+        background: #005f87;
+    }
+
+    .fc .fc-button.fc-button-primary {
+        background: #0073aa;
+    }
+
+    .fc .fc-button.fc-button-primary:hover {
+        background: #005f87;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.5em;
+        color: #1d2327;
+    }
+
+    .fc .fc-daygrid-day-number {
+        color: #1d2327;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: #e6f3fa;
+    }
+
+    .fc .fc-event {
+        border-radius: 4px;
+        font-size: 0.9em;
+        padding: 2px 4px;
+    }
+
+    /* Tooltip Styles */
+    .tippy-box[data-theme~='light-border'] {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        color: #1d2327;
+        font-size: 14px;
+    }
+
+    .tippy-box[data-theme~='light-border'] .tippy-content {
+        padding: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .fc .fc-toolbar {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+    </style>
+    <?php
+}
+
+/**
+ * Get Sessions for a Specific Mentor
+ */
+function urmentor_get_mentor_sessions($mentor_id) {
+    global $wpdb;
+
+    // Fetch all WooCommerce orders with status 'completed', 'processing', or 'on-hold'
+    $args = array(
+        'status' => array('wc-completed', 'wc-processing', 'wc-on-hold'),
+        'limit' => -1, // Retrieve all orders
+    );
+    $orders = wc_get_orders($args);
+
+    $sessions = array();
+    $total_sessions = 0;
+
+    foreach ($orders as $order) {
+        foreach ($order->get_items() as $item_id => $item) {
+            // Retrieve session-related metadata
+            $session_mentor_id = $item->get_meta('mentor_id');
+            $child_id = $item->get_meta('child_id');
+            $session_date_time = $item->get_meta('session_date_time');
+            $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
+            $location = $item->get_meta('location') ?: 'online';
+            $zoom_meeting = $item->get_meta('zoom_meeting') ?: '';
+            $zoom_link = '';
+
+            // Only include sessions for the specified mentor
+            if ($session_mentor_id != $mentor_id) {
+                continue;
+            }
+
+            // Generate Zoom link if applicable
+            if ($location === 'online' && !empty($zoom_meeting) && class_exists('Zoom')) {
+                $zoom = new Zoom();
+                $zoom_link = $zoom->getMeetingUrl($zoom_meeting, 'start_url');
+            }
+
+            // Ensure required metadata exists
+            if ($session_mentor_id && $child_id && $session_date_time) {
+                $mentor = get_user_by('id', $session_mentor_id);
+                $child = get_user_by('id', $child_id);
+
+                // Add session details to the array
+                $sessions[] = array(
+                    'date_time' => new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata')),
+                    'mentor_name' => $mentor ? $mentor->display_name : 'Unknown Mentor',
+                    'mentor_id' => $session_mentor_id,
+                    'child_name' => $child ? $child->display_name : 'Unknown Child',
+                    'child_id' => $child_id,
+                    'appointment_status' => $appointment_status,
+                    'order_id' => $order->get_id(),
+                    'item_id' => $item_id,
+                    'zoom_link' => $zoom_link,
+                );
+
+                // Increment total sessions count
+                $total_sessions++;
+            }
+        }
+    }
+
+    return array(
+        'total_sessions' => $total_sessions,
+        'sessions' => $sessions,
+    );
 }
 
 /**
