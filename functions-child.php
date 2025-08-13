@@ -433,7 +433,7 @@ function display_help_requests_page() {
 								<input type="hidden" name="update_status" value="1">
 							</form>
 							<div style="margin-top: 2px;display: inline;position: relative; bottom: -9px;">
-								<button type="button" class="delete-btn" style="border: none;background: none; cursor: pointer;" onclick="showDeleteConfirmation('<?php echo esc_js($request['id']); ?>', '<?php echo esc_js($request['user_name']); ?>')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<button type="button" class="delete-btn" style="border: none;background: none; cursor: pointer;" onclick="showDeleteConfirmation('<?php echo esc_js($request['id']); ?>', '<?php echo esc_js($request['user_name']); ?>')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#50575e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								  <polyline points="3 6 5 6 21 6"></polyline>
 								  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
 								  <line x1="10" y1="11" x2="10" y2="17"></line>

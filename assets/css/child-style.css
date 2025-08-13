@@ -159,6 +159,6 @@ textarea {
     }
 }
 
-.wcDirectChannels, .wcFooter{
+.wcDirectChannels, .wcDirectChannels + .wcFooter{
 	display: none !important;
 }
