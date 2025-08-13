@@ -209,7 +209,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
             <div class="col-md-3">
               <div class="d-grid">
                 <a href="tel:<?php echo $phone_number; ?>" class="btn btn-primary text-decoration-none">
-                  <i class="fas fa-phone me-2"></i>Parent  <?php echo $phone_number; ?>
+                  <i class="fa-solid fa-phone me-2" style='transform: rotate(90deg);'></i>Parent  <?php echo $phone_number; ?>
                 </a>
               </div>
             </div>
@@ -220,7 +220,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
               <div class="col-md-3">
                 <div class="d-grid">
                   <a href="tel:<?php echo $field_value['number']; ?>" class="btn btn-danger text-decoration-none">
-                    <i class="fas fa-phone me-2"></i><?php echo $field_value['name']; ?> – <?php echo $field_value['number']; ?>
+                    <i class="fas fa-phone me-2" style='transform: rotate(90deg);'></i><?php echo $field_value['name']; ?> – <?php echo $field_value['number']; ?>
                   </a>
                 </div>
               </div>
