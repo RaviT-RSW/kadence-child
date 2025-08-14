@@ -267,16 +267,21 @@ get_header();
 
         while (currentTime < endTime) {
             const slotStart = currentTime.toTimeString().slice(0, 5);
-            const slotEnd = new Date(currentTime.getTime() + 60 * 60000).toTimeString().slice(0, 5);
+            const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+            const slotEnd = slotEndTime.toTimeString().slice(0, 5);
+
+            // Ensure the slot end time does not exceed the mentor's end time
+            if (slotEndTime > endTime) break;
+
             const slotTime = `${slotStart} - ${slotEnd}`;
             const slotStartFull = new Date(`${fullDate}T${slotStart}:00`);
-            const slotEndFull = new Date(slotStartFull.getTime() + 60 * 60000);
+            const slotEndFull = new Date(slotStartFull.getTime() + 60 * 60 * 1000);
 
-            // Check if this slot overlaps with any booked time
+            // Check if the slot is booked
             const isBooked = bookedTimes.some(bookedTime => {
                 const bookedStartFull = new Date(`${fullDate}T${bookedTime}:00`);
-                const bookedEndFull = new Date(bookedStartFull.getTime() + 60 * 60000);
-                return slotStartFull < bookedEndFull && slotEndFull > bookedStartFull; // Overlap check
+                const bookedEndFull = new Date(bookedStartFull.getTime() + 60 * 60 * 1000);
+                return slotStartFull < bookedEndFull && slotEndFull > bookedStartFull;
             });
 
             const slot = document.createElement("div");
