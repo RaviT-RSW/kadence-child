@@ -209,7 +209,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
             <div class="col-md-3">
               <div class="d-grid">
                 <a href="tel:<?php echo $phone_number; ?>" class="btn btn-primary text-decoration-none">
-                  <i class="fa-solid fa-phone me-2" style='transform: rotate(90deg);'></i>Parent  <?php echo $phone_number; ?>
+                  <i class="fas fa-phone me-2" style='transform: rotate(90deg);'></i>Parent  <?php echo $phone_number; ?>
                 </a>
               </div>
             </div>
