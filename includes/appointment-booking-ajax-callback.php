@@ -1,6 +1,13 @@
 <?php
+/**
+ * Manage AJAX callbacks for appointment booking.
+ */
 
-add_action('wp_ajax_get_mentor_booked_slots', 'get_mentor_booked_slots');
+/**
+ * AJAX callback to get booked sessions for a mentor in a given month.
+ *
+ * @since 1.0.0
+ */
 function get_mentor_booked_slots() {
     check_ajax_referer('mentor_dashboard_nonce', 'nonce');
     global $wpdb;
@@ -39,8 +46,13 @@ function get_mentor_booked_slots() {
 
     wp_send_json_success(['booked_slots' => $booked_slots]);
 }
+add_action('wp_ajax_get_mentor_booked_slots', 'get_mentor_booked_slots');
 
-add_action('wp_ajax_add_session_to_cart', 'handle_add_session_to_cart');
+/**
+ * Handles adding a session to the cart via AJAX.
+ *
+ * @since 1.0.0
+ */
 function handle_add_session_to_cart() {
     check_ajax_referer('mentor_dashboard_nonce', 'nonce');
 
@@ -100,9 +112,13 @@ function handle_add_session_to_cart() {
         wp_send_json_error(['message' => 'Failed to add session to cart.']);
     }
 }
+add_action('wp_ajax_add_session_to_cart', 'handle_add_session_to_cart');
 
-// Transfer cart item meta to order item meta
-add_action('woocommerce_checkout_create_order_line_item', 'transfer_cart_item_meta_to_order', 10, 4);
+/**
+ * Transfer cart item meta data to an order item when an order is placed.
+ *
+ * @since 1.0.0
+ */
 function transfer_cart_item_meta_to_order($item, $cart_item_key, $values, $order) {
     if (isset($values['mentor_id'])) {
         $item->update_meta_data('mentor_id', $values['mentor_id']);
@@ -120,9 +136,13 @@ function transfer_cart_item_meta_to_order($item, $cart_item_key, $values, $order
         $item->update_meta_data('appointment_duration', $values['appointment_duration']);
     }
 }
+add_action('woocommerce_checkout_create_order_line_item', 'transfer_cart_item_meta_to_order', 10, 4);
 
-// Display mentor and child details on admin order details page
-add_action('woocommerce_admin_order_data_after_order_details', 'display_mentor_child_details', 10, 1);
+/**
+ * Displays mentor and child information for each order item on the order edit page.
+ *
+ * @since 1.0.0
+ */
 function display_mentor_child_details($order) {
     // Loop through order items
     foreach ($order->get_items() as $item_id => $item) {
@@ -155,9 +175,14 @@ function display_mentor_child_details($order) {
         }
     }
 }
+add_action('woocommerce_admin_order_data_after_order_details', 'display_mentor_child_details', 10, 1);
 
-// Add record to wp_assigned_mentees table when an order is placed
-add_action('woocommerce_checkout_order_processed', 'add_assigned_mentees_record', 10, 2);
+/**
+ * Adds a record to the wp_assigned_mentees table for each order item.
+ *
+ * @since 1.0.0
+ *
+ */
 function add_assigned_mentees_record($order_id, $posted_data) {
     global $wpdb;
 
@@ -194,9 +219,13 @@ function add_assigned_mentees_record($order_id, $posted_data) {
         }
     }
 }
+add_action('woocommerce_checkout_order_processed', 'add_assigned_mentees_record', 10, 2);
 
-// Add AJAX action for rescheduling a session
-add_action('wp_ajax_reschedule_session', 'handle_reschedule_session');
+/**
+ * Handles rescheduling a session via AJAX.
+ *
+ * @since 1.0.0
+ */
 function handle_reschedule_session() {
     check_ajax_referer('mentor_dashboard_nonce', 'nonce');
 
@@ -225,3 +254,27 @@ function handle_reschedule_session() {
     }
     wp_die();
 }
+add_action('wp_ajax_reschedule_session', 'handle_reschedule_session');
+
+/**
+ * Customizes the checkout fields.
+ *
+ * @since 1.0.0
+ */
+function custom_override_checkout_fields($fields) {
+
+    // Remove billing fields
+    unset($fields['billing']['billing_country']);
+    unset($fields['billing']['billing_address_1']);
+    unset($fields['billing']['billing_address_2']);
+    unset($fields['billing']['billing_state']);
+    unset($fields['billing']['billing_city']);
+    unset($fields['billing']['billing_postcode']);
+
+    $fields['billing']['billing_first_name']['priority'] = 10;
+    $fields['billing']['billing_last_name']['priority'] = 20;
+    $fields['billing']['billing_email']['priority'] = 30;
+
+    return $fields;
+}
+add_filter('woocommerce_checkout_fields', 'custom_override_checkout_fields');
