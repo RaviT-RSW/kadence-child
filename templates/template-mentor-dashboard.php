@@ -137,10 +137,10 @@ $mentees = $wpdb->get_results(
     <div class="col-6">
       <div class="card shadow-sm mb-4">
         <div class="card-body">
-          <h4 class="card-title mb-3 fw-bold" style="color: #114470;">Next Session</h4>
+          <h4 class="card-title mb-2 fw-bold" style="color: #114470;">Next Session</h4>
           <?php if ($next_session) : ?>
 
-          <div class="d-flex align-items-start pb-2 mb-3">
+          <div class="d-flex align-items-start pb-2">
 
             <!-- Date Badge -->
             <div class="text-center me-3 mt-4">
@@ -178,17 +178,33 @@ $mentees = $wpdb->get_results(
                 Place: <?php echo esc_html($next_session['location']); ?>
               </p>
 
-              <span class="badge <?php echo $badge_class; ?>">
+              <span class="badge <?php echo $badge_class; ?> mb-2">
                 <?php echo ucfirst($next_session['appointment_status']); ?>
               </span>
 
-              <?php if ($next_session['zoom_link']) : ?>
-                <div class="mt-2">
-                  <a href="<?php echo esc_url($next_session['zoom_link']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
-                    <i class="fas fa-video me-1"></i>Join Meeting
-                  </a>
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="btn-group" role="group">
+                    <?php if ($next_session['appointment_status'] === 'pending') : ?>
+                      <button type="button" class="btn btn-success btn-sm approve-appoinment-btn" data-item-id="<?php echo esc_attr($next_session['item_id']); ?>" data-order-id="<?php echo esc_attr($next_session['order_id']); ?>"> Approve </button>
+                      <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($next_session['item_id']); ?>" data-order-id="<?php echo esc_attr($next_session['order_id']); ?>"> Cancel </button>
+                    <?php endif; ?>
+                    <a href="<?php echo esc_url(add_query_arg(array(
+                          'order_id' => $next_session['order_id'],
+                          'item_id' => $next_session['item_id']
+                      ), site_url('/appointment-details/'))); ?>"
+                       class="btn btn-secondary btn-sm view-btn">
+                      View
+                    </a>
+                  </div>
+
+                  <?php if ($next_session['zoom_link']) : ?>
+                    <a href="<?php echo esc_url($next_session['zoom_link']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
+                      <i class="fas fa-video me-1"></i>Join Meeting
+                    </a>
+                  <?php endif; ?>
                 </div>
-              <?php endif; ?>
+              </div>
             </div>
           </div>
           <?php else : ?>
@@ -205,23 +221,23 @@ $mentees = $wpdb->get_results(
         'meta_key'   => 'assigned_mentor_id',
         'meta_value' => $mentor_id,
         'fields'     => array('ID', 'display_name'),
-        'number'     => 4 // Limit to 3 users
-
+        'number'     => 3
       ));
-
     ?>
     <div class="col-md-6">
       <div class="card shadow-sm mb-4">
         <div class="card-body">
           <h4 class="card-title mb-3 fw-bold" style="color: #114470;">Assigned Mentees</h4>
           <div class="table-responsive">
-            <table class="table table-striped">
-              
+            <table class="table table-striped align-middle">
               <tbody>
                 <?php if (!empty($mentees)) : ?>
                   <?php foreach ($mentees as $mentee) : ?>
                     <tr>
-                      <td><?php echo esc_html(ucfirst($mentee->display_name)); ?></td>
+                      <td class="d-flex align-items-center">
+                        <?php echo get_avatar($mentee->ID, 40, '', '', array('class' => 'rounded-circle me-2')); ?>
+                        <span><?php echo esc_html(ucfirst($mentee->display_name)); ?></span>
+                      </td>
                       <td>
                         <a href="<?php echo esc_url(add_query_arg('child_id', $mentee->ID, site_url('/mentee-appointment-history/'))); ?>" class="btn btn-sm" style="background: #114470;color: #fff;">View</a>
                       </td>
@@ -272,17 +288,35 @@ $mentees = $wpdb->get_results(
                   <p class="mb-1 text-muted">
                     Place: <?php echo esc_html($session['location']); ?>
                   </p>
-                  <span class="badge <?php echo $badge_class; ?>">
+                  <span class="badge <?php echo $badge_class; ?> mb-3">
                     <?php echo ucfirst($session['appointment_status']); ?>
                   </span>
 
-                  <?php if ($session['zoom_link']) : ?>
-                    <div class="mt-2">
-                      <a href="<?php echo esc_url($session['zoom_link']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
-                        <i class="fas fa-video me-1"></i>Join Meeting
-                      </a>
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div class="btn-group" role="group">
+                        <?php if ($session['appointment_status'] === 'pending') : ?>
+                          <button type="button" class="btn btn-success btn-sm approve-appoinment-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>"> Approve </button>
+                          <button type="button" class="btn btn-danger btn-sm cancel-btn" data-item-id="<?php echo esc_attr($session['item_id']); ?>" data-order-id="<?php echo esc_attr($session['order_id']); ?>"> Cancel </button>
+                        <?php endif; ?>
+                        <a href="<?php echo esc_url(add_query_arg(array(
+                              'order_id' => $session['order_id'],
+                              'item_id' => $session['item_id']
+                          ), site_url('/appointment-details/'))); ?>"
+                           class="btn btn-secondary btn-sm view-btn">
+                          View
+                        </a>
+                      </div>
+
+                      <?php if ($session['zoom_link']) : ?>
+                        <a href="<?php echo esc_url($session['zoom_link']); ?>"
+                           class="btn btn-sm btn-outline-primary" target="_blank">
+                          <i class="fas fa-video me-1"></i>Join Meeting
+                        </a>
+                      <?php endif; ?>
+
                     </div>
-                  <?php endif; ?>
+                  </div>
                 </div>
 
               </div>
