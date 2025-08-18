@@ -96,3 +96,65 @@ function build_email_body($template_name, $replacements = []) {
     
     return $full;
 }
+
+
+// Invoice PDF customisation
+
+add_filter('wpo_wcpdf_simple_template_default_table_headers', 'remove_change_invoice_column_names', 2, 10);
+
+function remove_change_invoice_column_names($headers, $document)
+{
+    $headers = array(
+        'product'  => __( 'Appoinment', 'woocommerce-pdf-invoices-packing-slips' ),
+        'price'    => __( 'Price', 'woocommerce-pdf-invoices-packing-slips' ),
+    );
+
+    if ( 'packing-slip' === $document->get_type() ) {
+        unset( $headers['price'] );
+    }
+    return $headers;
+}
+
+
+function urm_date_format($provided_datetime)
+{
+    $timestamp = strtotime($provided_datetime);
+
+    // Get the admin date format and time format from settings
+    $date_format = get_option('date_format');  // e.g., 'Y-m-d'
+    $time_format = get_option('time_format');  // e.g., 'H:i:s'
+
+    // Combine both date and time formats
+    $admin_datetime_format = $date_format . ' ' . $time_format;
+
+    // Use date_i18n to convert the timestamp into the WordPress format
+    return date_i18n($admin_datetime_format, $timestamp);
+}
+
+function urm_get_username($user_id ='' )
+{
+    if(empty($user_id)){ $user_id =  get_current_user_id(); }
+    $user_data = get_user_by('id', $user_id);
+
+    if ($user_data) {
+        return  ucfirst($user_data->user_login);
+    }
+    return '';
+}
+
+
+function urm_get_payment_status($order_id)
+{
+    $order= wc_get_order($order_id);
+
+    $order_status = 'Invalid Order Number';
+
+    if($order){
+        $order_status = $order->get_status();
+    }
+
+    if($order_status == "processing" || $order_status == "complete") {
+        return "Paid";
+    }
+    return $order_status;
+}

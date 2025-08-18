@@ -56,6 +56,7 @@ function urmentor_dashboard_page() {
             'borderColor' => $session['appointment_status'] === 'completed' ? '#00a32a' : ($session['appointment_status'] === 'cancelled' ? '#d63638' : '#0073aa'),
         );
     }
+
     ?>
     <div class="wrap urmentor-dashboard">
         <h1>UrMentor Dashboard</h1>
@@ -103,6 +104,31 @@ function urmentor_dashboard_page() {
             </a>
         </div>
         
+
+         <div class="dashboard-stats-container">
+            <div class="dashboard-stat-card">
+                <div class="stat-content">
+                    <div> Sessions by status </div>
+                    <div>
+                        <?= do_shortcode('[appointment_status_pie_chart session_status_counts=\''.json_encode($metrics['session_status_counts']).'\']');?>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-stat-card">
+                <div class="stat-icon mentor">
+                    <span class="dashicons dashicons-money-alt"></span>
+                </div>
+                <div class="stat-content">
+                    <h3><?= wc_price($metrics['total_earnings']) ?></h3>
+                    <p> Total Earnings </p>
+                </div>
+            </div>
+
+
+        </div>
+
         <!-- Quick Actions -->
         <div class="dashboard-quick-actions">
             <h2>Quick Actions</h2>
@@ -128,10 +154,6 @@ function urmentor_dashboard_page() {
             <div id="urmentor-calendar"></div>
         </div>
     </div>
-
-    <!-- FullCalendar CSS and JS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -169,213 +191,6 @@ function urmentor_dashboard_page() {
             calendar.render();
         });
     </script>
-
-    <!-- Tippy.js for tooltips -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-
-    <style>
-    .urmentor-dashboard {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    }
-
-    /* Dashboard Statistics Cards */
-    .dashboard-stats-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin: 20px 0 30px;
-    }
-
-    .dashboard-stat-card {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 20px;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        text-decoration: none;
-        color: inherit;
-    }
-
-    .dashboard-stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    .stat-icon {
-        font-size: 40px;
-        margin-right: 15px;
-        padding: 15px;
-        border-radius: 50%;
-        background: #0073aa;
-        color: white;
-    }
-
-    .stat-icon.mentor { background: #00a32a; }
-    .stat-icon.parent { background: #f56500; }
-    .stat-icon.mentee { background: #d63638; }
-    .stat-icon.booking { background: #ff8c00; }
-    .stat-icon.payment { background: #7c3aed; }
-    .stat-icon.revenue { background: #059669; }
-
-    .stat-content h3 {
-        font-size: 28px;
-        font-weight: bold;
-        margin: 0;
-        color: #1d2327;
-    }
-
-    .stat-content p {
-        margin: 5px 0;
-        color: #646970;
-        font-weight: 500;
-    }
-
-    .stat-change {
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 12px;
-        font-weight: 500;
-    }
-
-    .stat-change.positive {
-        background: #d1e7dd;
-        color: #0f5132;
-    }
-
-    .stat-change.negative {
-        background: #f8d7da;
-        color: #842029;
-    }
-
-    .stat-change.neutral {
-        background: #e2e3e5;
-        color: #41464b;
-    }
-
-    /* Quick Actions */
-    .dashboard-quick-actions {
-        margin: 30px 0;
-        background: #fff;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-    }
-
-    .quick-action-buttons {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-
-    .quick-action-buttons .button {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-    }
-
-    /* Calendar Section */
-    .calendar-section {
-        margin: 30px 0;
-        background: #fff;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-    }
-
-    #urmentor-calendar {
-        max-width: 100%;
-        margin-top: 20px;
-    }
-
-    /* FullCalendar Custom Styles */
-    .fc {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    }
-
-    .fc .fc-button {
-        background: #0073aa;
-        border: none;
-        color: white;
-        border-radius: 4px;
-        padding: 6px 12px;
-    }
-
-    .fc .fc-button:hover {
-        background: #005f87;
-    }
-
-    .fc .fc-button.fc-button-primary {
-        background: #0073aa;
-    }
-
-    .fc .fc-button.fc-button-primary:hover {
-        background: #005f87;
-    }
-
-    .fc .fc-toolbar-title {
-        font-size: 1.5em;
-        color: #1d2327;
-    }
-
-    .fc .fc-daygrid-day-number {
-        color: #1d2327;
-    }
-
-    .fc .fc-daygrid-day.fc-day-today {
-        background-color: #e6f3fa;
-    }
-
-    .fc .fc-event {
-        border-radius: 4px;
-        font-size: 0.9em;
-        padding: 2px 4px;
-    }
-
-    /* Tooltip Styles */
-    .tippy-box[data-theme~='light-border'] {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        color: #1d2327;
-        font-size: 14px;
-    }
-
-    .tippy-box[data-theme~='light-border'] .tippy-content {
-        padding: 10px;
-    }
-
-    @media (max-width: 1200px) {
-        .dashboard-content-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .chart-section,
-        .sessions-section {
-            grid-column: 1 / 2;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .dashboard-stats-container {
-            grid-template-columns: 1fr;
-        }
-
-        .quick-action-buttons {
-            flex-direction: column;
-        }
-
-        .fc .fc-toolbar {
-            flex-direction: column;
-            gap: 10px;
-        }
-    }
-    </style>
     <?php
 }
 
@@ -399,6 +214,8 @@ function urmentor_get_dashboard_metrics() {
         'active_mentees' => $active_mentees,
         'active_parents' => $active_parents,
         'sessions' => $session_data['sessions'], // Include session details for calendar
+        'session_status_counts' => $session_data['session_status_counts'],
+        'total_earnings' => $session_data['total_earnings'],
     );
 }
 
@@ -416,9 +233,14 @@ function urmentor_get_total_sessions() {
     $orders = wc_get_orders($args);
 
     $sessions = array();
+    $session_status_counts = array();
+    $total_earnings = 0;
     $total_sessions = 0;
 
-    foreach ($orders as $order) {
+    foreach ($orders as $order)
+    {
+        $total_earnings += $order->get_total();
+
         foreach ($order->get_items() as $item_id => $item) {
             // Retrieve session-related metadata
             $mentor_id = $item->get_meta('mentor_id');
@@ -453,6 +275,11 @@ function urmentor_get_total_sessions() {
                     'zoom_link' => $zoom_link,
                 );
 
+                if (!isset($session_status_counts[$appointment_status])) {
+                    $session_status_counts[$appointment_status] = 0; // initialize
+                }
+                $session_status_counts[$appointment_status]++;
+
                 // Increment total sessions count
                 $total_sessions++;
             }
@@ -462,6 +289,76 @@ function urmentor_get_total_sessions() {
     return array(
         'total_sessions' => $total_sessions,
         'sessions' => $sessions,
+        'session_status_counts' => $session_status_counts,
+        'total_earnings' => $total_earnings,
     );
 }
-?>
+
+
+add_shortcode('appointment_status_pie_chart', 'appointment_status_pie_chart_shortcode');
+function appointment_status_pie_chart_shortcode($atts)
+{
+
+    // Define defaults
+    $default_counts = array(
+        'approved'  => 0,
+        'pending'   => 0,
+        'cancelled' => 0,
+        'finished'  => 0,
+    );
+
+    $session_status_counts = json_decode($atts['session_status_counts'], true);
+
+    // Merge with defaults → missing keys will be filled with defaults
+    $session_status_counts = array_merge($default_counts, (array) $session_status_counts);
+
+    ob_start(); 
+
+    ?>
+    
+    <canvas id="myPieChart" width="220"></canvas>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var ctx = document.getElementById('myPieChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Approved', 'Pending', 'Finished', 'Cancelled'],
+                datasets: [{
+                    data: [ 
+                        <?= $session_status_counts['approved'] ?>,
+                        <?= $session_status_counts['pending'] ?>,
+                        <?= $session_status_counts['finished'] ?>,
+                        <?= $session_status_counts['cancelled'] ?>,
+                     ], // Values for each label
+                    backgroundColor: [
+                        '#2ECC71',
+                        '#F1C40F',
+                        '#3498DB',
+                        '#E74C3C',
+                    ],
+                    borderColor: [
+                        '#2ECC71',
+                        '#F1C40F',
+                        '#3498DB',
+                        '#E74C3C',
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+    });
+    </script>
+    
+    <?php
+    return ob_get_clean();
+}
+

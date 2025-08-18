@@ -431,3 +431,141 @@
   font-size: 0.75em;
   padding: 0.4em 0.8em;
 }
+
+/*Thank You page CSS */
+
+.thankyou-container {
+    display: flex;
+    justify-content: center;
+    padding: 30px 15px;
+    background: linear-gradient(to right, #f5f8fa, #e9f2f9);
+    font-family: 'Segoe UI', sans-serif;
+}
+.thankyou-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 30px rgba(0,0,0,0.1);
+    max-width: 750px;
+    width: 100%;
+    padding: 30px;
+    text-align: center;
+    animation: fadeInUp 0.6s ease-in-out;
+    transition: transform 0.3s ease;
+}
+.thankyou-card:hover {
+    transform: translateY(-5px);
+}
+.thankyou-header i {
+    font-size: 60px;
+    color: #28a745;
+    animation: bounce 1.2s ease-in-out;
+}
+.thankyou-header h2 {
+    margin-top: 15px;
+    font-size: 26px;
+    color: #222;
+}
+.thankyou-header p {
+    color: #555;
+    font-size: 15px;
+}
+.thankyou-appointment, .thankyou-order, .thankyou-summary {
+    margin-top: 30px;
+    text-align: left;
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 20px;
+}
+.thankyou-appointment h3, .thankyou-order h3, .thankyou-summary h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #0073aa;
+    display: flex;
+    align-items: center;
+}
+.thankyou-appointment h3 i,
+.thankyou-order h3 i,
+.thankyou-summary h3 i {
+    margin-right: 8px;
+    color: #0073aa;
+}
+.detail-item, .summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+.detail-item:last-child,
+.summary-item:last-child {
+    border-bottom: none;
+}
+.label {
+    font-weight: 600;
+    color: #333;
+}
+.value {
+    color: #555;
+}
+.summary-item.total {
+    font-weight: bold;
+    color: #000;
+    font-size: 16px;
+}
+.thankyou-footer {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.btn-primary, .btn-secondary, .btn-download {
+    padding: 10px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-primary {
+    background: #0073aa;
+    color: #fff;
+}
+.btn-primary:hover {
+    background: #005f87;
+}
+.btn-secondary {
+    background: #e9ecef;
+    color: #333;
+}
+.btn-secondary:hover {
+    background: #d6d8db;
+}
+.btn-download {
+    background: #28a745;
+    color: #fff;
+}
+.btn-download:hover {
+    background: #218838;
+}
+.thankyou-buttons:hover {
+    color:white;
+}
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+/*Thank You page CSS */

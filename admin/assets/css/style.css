@@ -1,0 +1,200 @@
+    .urmentor-dashboard {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }
+
+    /* Dashboard Statistics Cards */
+    .dashboard-stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 20px 0 30px;
+    }
+
+    .dashboard-stat-card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .dashboard-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .stat-icon {
+        font-size: 40px;
+        margin-right: 15px;
+        padding: 15px;
+        border-radius: 50%;
+        background: #0073aa;
+        color: white;
+    }
+
+    .stat-icon.mentor { background: #00a32a; }
+    .stat-icon.parent { background: #f56500; }
+    .stat-icon.mentee { background: #d63638; }
+    .stat-icon.booking { background: #ff8c00; }
+    .stat-icon.payment { background: #7c3aed; }
+    .stat-icon.revenue { background: #059669; }
+
+    .stat-content h3 {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 0;
+        color: #1d2327;
+    }
+
+    .stat-content p {
+        margin: 5px 0;
+        color: #646970;
+        font-weight: 500;
+    }
+
+    .stat-change {
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+
+    .stat-change.positive {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .stat-change.negative {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .stat-change.neutral {
+        background: #e2e3e5;
+        color: #41464b;
+    }
+
+    /* Quick Actions */
+    .dashboard-quick-actions {
+        margin: 30px 0;
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .quick-action-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .quick-action-buttons .button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+    }
+
+    /* Calendar Section */
+    .calendar-section {
+        margin: 30px 0;
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    #urmentor-calendar {
+        max-width: 100%;
+        margin-top: 20px;
+    }
+
+    /* FullCalendar Custom Styles */
+    .fc {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }
+
+    .fc .fc-button {
+        background: #0073aa;
+        border: none;
+        color: white;
+        border-radius: 4px;
+        padding: 6px 12px;
+    }
+
+    .fc .fc-button:hover {
+        background: #005f87;
+    }
+
+    .fc .fc-button.fc-button-primary {
+        background: #0073aa;
+    }
+
+    .fc .fc-button.fc-button-primary:hover {
+        background: #005f87;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.5em;
+        color: #1d2327;
+    }
+
+    .fc .fc-daygrid-day-number {
+        color: #1d2327;
+    }
+
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: #e6f3fa;
+    }
+
+    .fc .fc-event {
+        border-radius: 4px;
+        font-size: 0.9em;
+        padding: 2px 4px;
+    }
+
+    /* Tooltip Styles */
+    .tippy-box[data-theme~='light-border'] {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        color: #1d2327;
+        font-size: 14px;
+    }
+
+    .tippy-box[data-theme~='light-border'] .tippy-content {
+        padding: 10px;
+    }
+
+    @media (max-width: 1200px) {
+        .dashboard-content-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-section,
+        .sessions-section {
+            grid-column: 1 / 2;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-stats-container {
+            grid-template-columns: 1fr;
+        }
+
+        .quick-action-buttons {
+            flex-direction: column;
+        }
+
+        .fc .fc-toolbar {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }

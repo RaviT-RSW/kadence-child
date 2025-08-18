@@ -132,7 +132,6 @@ require_once get_stylesheet_directory() . '/includes/shortcodes.php';
 require_once get_stylesheet_directory() . '/includes/functions-sql.php';
 require_once get_stylesheet_directory() . '/includes/function-manage-users.php';
 require_once get_stylesheet_directory() . '/includes/appointment-booking-ajax-callback.php';
-require_once get_stylesheet_directory() . '/includes/urmentor-admin-dashboard.php';
 
 require_once get_stylesheet_directory() . '/includes/class.zoom.php';
 
@@ -140,6 +139,9 @@ require_once get_stylesheet_directory() . '/functions-ajax.php';
 require_once get_stylesheet_directory() . '/mentor/goals.php';
 
 require 'functions-child.php';
+
+require_once get_stylesheet_directory() . '/admin/urmentor-admin-dashboard.php';
+require_once get_stylesheet_directory() . '/admin/functions.php';
 
 add_action('wp_ajax_save_working_hours', 'handle_save_working_hours');
 function handle_save_working_hours() {

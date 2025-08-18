@@ -28,6 +28,15 @@ if ( $order ) :
     }
 ?>
 
+<!-- Don't move this css as needed only for this page -->
+<style>
+    .content-area{ margin-top:0; }
+    .entry-content-wrap{ padding:0; }
+    .site-container { padding:0;  max-width: 100%;}
+</style>
+<!-- Don't move this css as needed only for this page -->
+
+
 <!-- Begin HTML Output -->
 <div class="thankyou-container">
     <div class="thankyou-card">
@@ -62,7 +71,7 @@ if ( $order ) :
         </div>
 
         <div class="thankyou-order">
-            <h3><i class="fas fa-receipt"></i> Order Information</h3>
+            <h3><i class="fas fa-receipt"></i> Order Details</h3>
             <div class="detail-item">
                 <span class="label">Order Number:</span>
                 <span class="value">#<?php echo esc_html($order_id); ?></span>
@@ -72,32 +81,30 @@ if ( $order ) :
                 <span class="value"><?php echo esc_html($order_date); ?></span>
             </div>
             <div class="detail-item">
-                <span class="label">Email:</span>
+                <span class="label">Customer Email:</span>
                 <span class="value"><?php echo esc_html($order_email); ?></span>
-            </div>
-            <div class="detail-item">
-                <span class="label">Payment Method:</span>
-                <span class="value"><?php echo esc_html($payment_method); ?></span>
             </div>
         </div>
 
         <div class="thankyou-summary">
-            <h3><i class="fas fa-box"></i> Order Summary</h3>
+            <h3><i class="fas fa-money-bill"></i> Payment Details</h3>
             <div class="summary-item">
-                <span><?php echo esc_html($product_name); ?></span>
-                <span><?php echo wc_price($item->get_total()); ?></span>
+                <span class="label">Payment Status:</span>
+                <span class="value"> <b>  <?php echo urm_get_payment_status($order->get_id()); ?> </b> </span>
             </div>
+
             <div class="summary-item">
-                <span>Subtotal</span>
-                <span><?php echo wc_price($order->get_subtotal()); ?></span>
+                <span class="label">Payment Method:</span>
+                <span class="value"> <?php echo esc_html($payment_method); ?> </span>
             </div>
+
             <div class="summary-item">
-                <span>Shipping</span>
-                <span><?php echo wc_price($order->get_shipping_total()); ?></span>
+                <span class="label">Subtotal:</span>
+                <span class="value"><?php echo wc_price($order->get_subtotal()); ?></span>
             </div>
             <div class="summary-item total">
-                <span>Total</span>
-                <span><?php echo wc_price($order_total); ?></span>
+                <span class="label">Total:</span>
+                <span class="value"><?php echo wc_price($order_total); ?></span>
             </div>
         </div>
 
@@ -110,145 +117,5 @@ if ( $order ) :
     </div>
 </div>
 
-<!-- Include Styles -->
-<style>
-.thankyou-container {
-    display: flex;
-    justify-content: center;
-    padding: 30px 15px;
-    background: linear-gradient(to right, #f5f8fa, #e9f2f9);
-    font-family: 'Segoe UI', sans-serif;
-}
-.thankyou-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 6px 30px rgba(0,0,0,0.1);
-    max-width: 750px;
-    width: 100%;
-    padding: 30px;
-    text-align: center;
-    animation: fadeInUp 0.6s ease-in-out;
-    transition: transform 0.3s ease;
-}
-.thankyou-card:hover {
-    transform: translateY(-5px);
-}
-.thankyou-header i {
-    font-size: 60px;
-    color: #28a745;
-    animation: bounce 1.2s ease-in-out;
-}
-.thankyou-header h2 {
-    margin-top: 15px;
-    font-size: 26px;
-    color: #222;
-}
-.thankyou-header p {
-    color: #555;
-    font-size: 15px;
-}
-.thankyou-appointment, .thankyou-order, .thankyou-summary {
-    margin-top: 30px;
-    text-align: left;
-    background: #f9f9f9;
-    border-radius: 10px;
-    padding: 20px;
-}
-.thankyou-appointment h3, .thankyou-order h3, .thankyou-summary h3 {
-    font-size: 18px;
-    margin-bottom: 15px;
-    color: #0073aa;
-    display: flex;
-    align-items: center;
-}
-.thankyou-appointment h3 i,
-.thankyou-order h3 i,
-.thankyou-summary h3 i {
-    margin-right: 8px;
-    color: #0073aa;
-}
-.detail-item, .summary-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-}
-.detail-item:last-child,
-.summary-item:last-child {
-    border-bottom: none;
-}
-.label {
-    font-weight: 600;
-    color: #333;
-}
-.value {
-    color: #555;
-}
-.summary-item.total {
-    font-weight: bold;
-    color: #000;
-    font-size: 16px;
-}
-.thankyou-footer {
-    margin-top: 30px;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.btn-primary, .btn-secondary, .btn-download {
-    padding: 10px 18px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-.btn-primary {
-    background: #0073aa;
-    color: #fff;
-}
-.btn-primary:hover {
-    background: #005f87;
-}
-.btn-secondary {
-    background: #e9ecef;
-    color: #333;
-}
-.btn-secondary:hover {
-    background: #d6d8db;
-}
-.btn-download {
-    background: #28a745;
-    color: #fff;
-}
-.btn-download:hover {
-    background: #218838;
-}
-.thankyou-buttons:hover {
-    color:white;
-}
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-@keyframes bounce {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-8px);
-    }
-}
-</style>
-
-<!-- FontAwesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
 <?php endif; ?>
