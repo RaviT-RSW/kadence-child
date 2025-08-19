@@ -1,15 +1,17 @@
 <?php
 /**
- * User and Mentor Management (Admin Interface)
+ * User and Mentor Management (Admin Interface) - Enhanced with Profile Picture Support
  *
  * Manages users and child-mentor assignments in a single admin menu.
  * 
  * Features:
  * - Manage Users: List, filter, add, edit, delete users
+ * - Profile Picture Upload/Edit functionality
  * - Child-Mentor assignments: Assign mentors to unassigned child users and view/search/paginate/unassign
  * - Stores mentor assignments in `assigned_mentor_id` user meta
  * - Stores parent assignments in `assigned_parent_id` user meta
  * - Stores mentor hourly rate in `mentor_hourly_rate` user meta
+ * - Stores custom profile pictures in `custom_profile_picture` user meta
  *
  * Notes:
  * - For admin users only (`manage_options`)
@@ -46,6 +48,28 @@ function urmentor_add_user_management_menu() {
         'urmentor-child-mentor-assignments',
         'urmentor_child_mentor_assignments_page'
     );
+}
+
+/**
+ * Get User Profile Picture URL
+ */
+function urmentor_get_profile_picture($user_id, $size = 'thumbnail') {
+    $custom_avatar_id = get_user_meta($user_id, 'custom_profile_picture', true);
+
+    if ($custom_avatar_id) {
+        $avatar_url = wp_get_attachment_image_url($custom_avatar_id, $size);
+        if ($avatar_url) {
+            return $avatar_url;
+        }
+    }
+
+    // Fallback to Gravatar
+    $user = get_userdata($user_id);
+    if ($user) {
+        return get_avatar_url($user->user_email, array('size' => 150));
+    }
+
+    return '';
 }
 
 /**
@@ -161,9 +185,11 @@ function urmentor_manage_users_page() {
                             $mentor_name = $mentor ? $mentor->display_name : 'Unknown';
                         }
                         $hourly_rate = get_user_meta($user->ID, 'mentor_hourly_rate', true);
+                        $profile_picture_url = urmentor_get_profile_picture($user->ID);
                         ?>
                         <tr>
                             <td class="username column-username has-row-actions column-primary" data-colname="Username">
+                                <img src="<?php echo esc_url($profile_picture_url); ?>" alt="<?php echo esc_attr($user->display_name); ?>" class="avatar avatar-32 photo" height="32" width="32" style="border-radius: 50%;" />
                                 <strong><?php echo esc_html($user->user_login); ?></strong>
                                 <div class="row-actions">
                                     <span class="edit">
@@ -452,6 +478,58 @@ function urmentor_get_mentor_sessions($mentor_id) {
 }
 
 /**
+ * Handle Profile Picture Upload
+ */
+function urmentor_handle_profile_picture_upload() {
+    if (!function_exists('wp_handle_upload')) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+    }
+
+    $uploadedfile = $_FILES['profile_picture'];
+
+    if (empty($uploadedfile['name'])) {
+        return false;
+    }
+
+    // Check file type
+    $allowed_types = array('jpg', 'jpeg', 'png', 'gif');
+    $file_extension = strtolower(pathinfo($uploadedfile['name'], PATHINFO_EXTENSION));
+
+    if (!in_array($file_extension, $allowed_types)) {
+        return new WP_Error('invalid_file_type', 'Please upload a valid image file (JPG, PNG, or GIF).');
+    }
+
+    // Handle upload
+    $upload_overrides = array('test_form' => false);
+    $movefile = wp_handle_upload($uploadedfile, $upload_overrides);
+
+    if ($movefile && !isset($movefile['error'])) {
+        // Insert the attachment
+        $attachment = array(
+            'guid' => $movefile['url'],
+            'post_mime_type' => $movefile['type'],
+            'post_title' => preg_replace('/\.[^.]+$/', '', basename($uploadedfile['name'])),
+            'post_content' => '',
+            'post_status' => 'inherit'
+        );
+
+        $attach_id = wp_insert_attachment($attachment, $movefile['file']);
+
+        if (!is_wp_error($attach_id)) {
+            if (!function_exists('wp_generate_attachment_metadata')) {
+                require_once(ABSPATH . 'wp-admin/includes/image.php');
+            }
+            $attach_data = wp_generate_attachment_metadata($attach_id, $movefile['file']);
+            wp_update_attachment_metadata($attach_id, $attach_data);
+
+            return $attach_id;
+        }
+    }
+
+    return new WP_Error('upload_failed', 'Failed to upload profile picture.');
+}
+
+/**
  * Add/Edit User Page
  */
 function urmentor_add_user_page() {
@@ -490,19 +568,62 @@ function urmentor_add_user_page() {
     $role = $user ? $user->roles[0] : '';
     $assigned_parent_id = $user ? get_user_meta($user->ID, 'assigned_parent_id', true) : '';
     $hourly_rate = $user ? get_user_meta($user->ID, 'mentor_hourly_rate', true) : '';
-    
+    $current_profile_picture = $user ? urmentor_get_profile_picture($user->ID, 'medium') : '';
+
     // Get all parents for dropdown
     $parents = get_users(array('role' => 'parent_user'));
     ?>
-    
+
     <div class="wrap">
         <h1><?php echo $action === 'edit' ? 'Edit User' : 'Add New User'; ?></h1>
-        
-        <form method="post" action="">
+
+        <form method="post" action="" enctype="multipart/form-data">
             <?php wp_nonce_field('urmentor_user_form', 'urmentor_user_nonce'); ?>
             
             <table class="form-table" role="presentation">
                 <tbody>
+                    <!-- Profile Picture -->
+                    <tr>
+                        <th scope="row"><label for="profile_picture">Profile Picture</label></th>
+                        <td>
+                            <div id="avatar-wrapper" style="margin-bottom: 10px;">
+                                <img id="profilePicPreview"
+                                     src="<?php echo esc_url($current_profile_picture ?: get_avatar_url($user_id, ['size' => 150])); ?>"
+                                     alt="Profile Picture"
+                                     style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; cursor: pointer;" />
+                                <p><small>Click image to change</small></p>
+                            </div>
+
+                            <!-- Hidden File Input -->
+                            <input type="file" name="profile_picture" id="profile_picture" accept="image/*" style="display:none;">
+                        </td>
+
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const profilePicPreview = document.getElementById('profilePicPreview');
+                            const profilePictureInput = document.getElementById('profile_picture');
+
+                            // When clicking on the picture -> open file select
+                            profilePicPreview.addEventListener('click', function() {
+                                profilePictureInput.click();
+                            });
+
+                            // Preview selected image
+                            profilePictureInput.addEventListener('change', function(event) {
+                                const file = event.target.files[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = function(e) {
+                                        profilePicPreview.src = e.target.result; // Replace old image
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
+                            });
+                        });
+                        </script>
+
+                    </tr>
+
                     <?php if ($action === 'add'): ?>
                     <tr>
                         <th scope="row"><label for="username">Username <span class="description">(required)</span></label></th>
@@ -611,7 +732,7 @@ function urmentor_add_user_page() {
                 mentorRow.style.display = 'none';
             }
         }
-        
+
         roleSelect.addEventListener('change', toggleFields);
         toggleFields(); // Initialize on page load
     });
@@ -663,6 +784,14 @@ function urmentor_handle_user_form_submission($action, $user_id = 0) {
             return $new_user_id;
         }
         
+        // Handle profile picture upload
+        if (!empty($_FILES['profile_picture']['name'])) {
+            $upload_result = urmentor_handle_profile_picture_upload();
+            if (!is_wp_error($upload_result) && $upload_result) {
+                update_user_meta($new_user_id, 'custom_profile_picture', $upload_result);
+            }
+        }
+
         // Save meta data
         if ($role === 'child_user' && $child_parent_id) {
             update_user_meta($new_user_id, 'assigned_parent_id', $child_parent_id);
@@ -694,6 +823,19 @@ function urmentor_handle_user_form_submission($action, $user_id = 0) {
             return $result;
         }
         
+        // Handle profile picture upload
+        if (!empty($_FILES['profile_picture']['name'])) {
+            $upload_result = urmentor_handle_profile_picture_upload();
+            if (!is_wp_error($upload_result) && $upload_result) {
+                // Delete old profile picture if exists
+                $old_picture_id = get_user_meta($user_id, 'custom_profile_picture', true);
+                if ($old_picture_id) {
+                    wp_delete_attachment($old_picture_id, true);
+                }
+                update_user_meta($user_id, 'custom_profile_picture', $upload_result);
+            }
+        }
+
         // Update meta data
         if ($role === 'child_user') {
             if ($child_parent_id) {
@@ -960,4 +1102,141 @@ function urmentor_child_mentor_assignments_page() {
     </style>
     <?php
 }
+
+/**
+ * Override WordPress get_avatar function for custom profile pictures
+ * This filter allows custom profile pictures to be used instead of Gravatar
+ */
+add_filter('get_avatar', 'urmentor_custom_avatar', 10, 6);
+function urmentor_custom_avatar($avatar, $id_or_email, $size, $default, $alt, $args) {
+    $user = null;
+
+    // Get user from different input types
+    if (is_numeric($id_or_email)) {
+        $user = get_user_by('id', $id_or_email);
+    } elseif (is_object($id_or_email) && isset($id_or_email->user_id)) {
+        $user = get_user_by('id', $id_or_email->user_id);
+    } elseif (is_string($id_or_email)) {
+        $user = get_user_by('email', $id_or_email);
+    }
+
+    if (!$user) {
+        return $avatar;
+    }
+
+    // Get custom profile picture
+    $custom_avatar_id = get_user_meta($user->ID, 'custom_profile_picture', true);
+
+    if ($custom_avatar_id) {
+        $custom_avatar_url = wp_get_attachment_image_url($custom_avatar_id, array($size, $size));
+
+        if ($custom_avatar_url) {
+            $avatar = sprintf(
+                '<img alt="%s" src="%s" class="avatar avatar-%d photo" height="%d" width="%d" />',
+                esc_attr($alt),
+                esc_url($custom_avatar_url),
+                esc_attr($size),
+                esc_attr($size),
+                esc_attr($size)
+            );
+        }
+    }
+
+    return $avatar;
+}
 ?>
+
+
+<?php
+/**
+ * Add Profile Picture field
+ */
+add_action('show_user_profile', 'urmentor_user_profile_picture_field');
+add_action('edit_user_profile', 'urmentor_user_profile_picture_field');
+add_action('user_new_form', 'urmentor_user_profile_picture_field');
+function urmentor_user_profile_picture_field($user) {
+    $user_id = is_object($user) ? $user->ID : 0;
+    $profile_picture_id = $user_id ? get_user_meta($user_id, 'custom_profile_picture', true) : '';
+    $profile_picture_url = $profile_picture_id ? wp_get_attachment_url($profile_picture_id) : '';
+
+    ?>
+    <h3>Profile Picture</h3>
+    <table class="form-table">
+        <tr>
+            <th><label for="profile_picture">Custom Profile Picture</label></th>
+            <td>
+                <div>
+                    <img id="profilePicPreview"
+                         src="<?php echo esc_url($profile_picture_url ?: get_avatar_url($user_id, ['size' => 150])); ?>"
+                         alt="Profile Picture"
+                         class="rounded-circle"
+                         style="width:120px; height:120px; object-fit:cover; border-radius:50%; border:2px solid #ddd; cursor:pointer;">
+                    <input type="file" id="profile_picture" name="profile_picture" accept="image/*" style="display:none;">
+                    <p class="description">Click the picture to change</p>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const img = document.getElementById("profilePicPreview");
+        const fileInput = document.getElementById("profile_picture");
+
+        if(img && fileInput){
+            img.addEventListener("click", () => fileInput.click());
+
+            fileInput.addEventListener("change", function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+    </script>
+    <?php
+}
+
+/**
+ * Ensure form supports file upload
+ */
+add_action('user_edit_form_tag', function() {
+    echo ' enctype="multipart/form-data"';
+});
+add_action('user_new_form_tag', function() {
+    echo ' enctype="multipart/form-data"';
+});
+
+/**
+ * Save profile picture
+ */
+add_action('personal_options_update', 'urmentor_save_profile_picture');
+add_action('edit_user_profile_update', 'urmentor_save_profile_picture');
+add_action('user_register', 'urmentor_save_profile_picture');
+function urmentor_save_profile_picture($user_id) {
+    if (!current_user_can('edit_user', $user_id)) {
+        return false;
+    }
+
+    if (!empty($_FILES['profile_picture']['name'])) {
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+        require_once(ABSPATH . 'wp-admin/includes/media.php');
+
+        $attachment_id = media_handle_upload('profile_picture', 0);
+
+        if (!is_wp_error($attachment_id)) {
+            // remove old pic
+            $old = get_user_meta($user_id, 'custom_profile_picture', true);
+            if ($old && $old != $attachment_id) {
+                wp_delete_attachment($old, true);
+            }
+            update_user_meta($user_id, 'custom_profile_picture', $attachment_id);
+        }
+    }
+}

@@ -192,6 +192,20 @@ function handle_update_profile() {
             'last_name' => $last_name
         ]);
         update_user_meta($user_id, 'phone', $phone);
+
+        if (!empty($_FILES['profile_picture']['name'])) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            require_once ABSPATH . 'wp-admin/includes/media.php';
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+
+            $attachment_id = media_handle_upload('profile_picture', 0);
+            if (!is_wp_error($attachment_id)) {
+                update_user_meta($user_id, 'custom_profile_picture', $attachment_id);
+            } else {
+                wp_send_json_error(['message' => 'Image upload failed.']);
+            }
+        }
+
         wp_send_json_success();
     }
     wp_send_json_error();
