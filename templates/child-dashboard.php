@@ -70,6 +70,15 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
   });
 
   $next_session = !empty($future_sessions) ? array_shift($future_sessions) : null;
+
+  $status_colors = [
+    'approved'  => 'bg-success text-white',
+    'pending'   => 'bg-warning text-dark',
+    'cancelled' => 'bg-danger text-white',
+    'upcoming'  => 'bg-info text-dark',
+    'completed' => 'bg-secondary text-white'
+  ];
+
   ?>
 
   <div class="row g-4">
@@ -117,7 +126,14 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
               <p class="mb-1 text-muted">
                 Place: <?php echo esc_html($next_session['location']); ?>
               </p>
-              <span class="badge bg-info text-dark"><?php echo ucfirst($next_session['appointment_status']); ?></span>
+
+              <?php
+                $status = strtolower($next_session['appointment_status']);
+                $badge_class = $status_colors[$status] ?? 'bg-light text-dark'; // fallback
+              ?>
+              <span class="badge <?php echo $badge_class; ?> mb-3">
+                <?php echo ucfirst($next_session['appointment_status']); ?>
+              </span>
 
               <?php if ($next_session['zoom_link']) : ?>
                 <div class="mt-2">
@@ -197,7 +213,13 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
                       <p class="mb-1 text-muted">
                         Place: <?php echo esc_html($session['location']); ?>
                       </p>
-                      <span class="badge bg-info text-dark"><?php echo ucfirst($session['appointment_status']); ?></span>
+                      <?php
+                        $status = strtolower($session['appointment_status']);
+                        $badge_class = $status_colors[$status] ?? 'bg-light text-dark'; // fallback
+                      ?>
+                      <span class="badge <?php echo $badge_class; ?> mb-3">
+                        <?php echo ucfirst($session['appointment_status']); ?>
+                      </span>
 
                       <?php if ($session['zoom_link']) : ?>
                         <div class="mt-2">
