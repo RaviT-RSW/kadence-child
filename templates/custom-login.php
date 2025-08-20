@@ -80,9 +80,11 @@ if (isset($error_message)) {
                 <label for="username">Username or Email</label>
                 <input type="text" name="username" id="username" required class="form-control">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="position: relative;">
                 <label for="password">Password</label>
                 <input type="password" name="password" id="password" required class="form-control">
+                <!-- Eye icon -->
+                <i class="fa-solid fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 45px; cursor: pointer;"></i>
             </div>
             <div class="form-group">
                 <label><input type="checkbox" name="rememberme" id="rememberme"> Remember Me</label>
@@ -209,4 +211,18 @@ if (isset($error_message)) {
 }
 </style>
 
+<script>
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
+
+    togglePassword.addEventListener('click', function () {
+        // Toggle the type attribute
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+
+        // Toggle the eye / eye-slash icon
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+</script>
 <?php get_footer(); ?>
