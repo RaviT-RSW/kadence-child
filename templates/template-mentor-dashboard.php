@@ -235,7 +235,9 @@ $mentees = $wpdb->get_results(
                   <?php foreach ($mentees as $mentee) : ?>
                     <tr>
                       <td class="d-flex align-items-center">
-                        <?php echo get_avatar($mentee->ID, 40, '', '', array('class' => 'rounded-circle me-2')); ?>
+                        <div class="rounded-circle me-2" style="width: 40px; height: 40px; overflow: hidden; display: inline-block;">
+                          <?php echo get_avatar($mentee->ID, 40); ?>
+                        </div>
                         <span><?php echo esc_html(ucfirst($mentee->display_name)); ?></span>
                       </td>
                       <td>
