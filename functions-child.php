@@ -240,7 +240,7 @@ function add_help_requests_admin_menu() {
 		'help-requests',
 		'display_help_requests_page',
 		'dashicons-sos',
-		30
+		4
 	);
 }
 add_action('admin_menu', 'add_help_requests_admin_menu');

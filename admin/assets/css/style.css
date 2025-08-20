@@ -198,3 +198,11 @@
             gap: 10px;
         }
     }
+
+/* Wise chat box css Start */
+
+.wcDirectChannels{
+    display: none !important;
+}
+
+/* Wise chat box css End */

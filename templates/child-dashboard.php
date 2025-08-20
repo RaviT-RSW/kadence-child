@@ -22,7 +22,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
 
   <!-- Welcome Section -->
   <div class="mb-4 text-center text-md-start">
-    <h2 class="mb-1">Welcome back, <span class="text-primary"><?php echo $display_name; ?></span></h2>
+    <h2 class="mb-1">Welcome back, <span style="color: #114470;"><?php echo $display_name; ?></span></h2>
     <p class="text-muted">Here's what's coming up for you.</p>
   </div>
 
@@ -102,13 +102,13 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
     <div class="col-12 col-md-6">
       <div class="card shadow-sm h-100">
         <div class="card-body">
-          <h4 class="card-title fw-bold text-primary">Next Session</h4>
+          <h4 class="card-title fw-bold" style="color: #114470;">Next Session</h4>
           <?php if ($next_session) : ?>
           <div class="d-flex flex-column flex-sm-row align-items-start pb-3 mb-3">
 
             <!-- Date Badge -->
             <div class="text-center me-sm-3 mb-3 mb-sm-0">
-              <div class="bg-info text-white rounded-top px-3 py-1 fw-bold fs-5">
+              <div class="text-white rounded-top px-3 py-1 fw-bold fs-5" style="font-size: 24px; background: #3eaeb2;">
                 <?php echo esc_html($next_session['date_time']->format('M')); ?>
               </div>
               <div class="border rounded-bottom px-2 py-1 fw-bold fs-5">
@@ -186,7 +186,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
     <div class="col-12">
       <div class="card shadow-sm h-100">
         <div class="card-body">
-          <h4 class="card-title mb-3 fw-bold text-primary">Upcoming Sessions</h4>
+          <h4 class="card-title mb-3 fw-bold" style="color: #114470;">Upcoming Sessions</h4>
 
           <?php if (!empty($future_sessions)) : ?>
             <div class="row g-3">
@@ -195,7 +195,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
                   <div class="d-flex flex-column flex-sm-row align-items-start border rounded p-3 h-100">
                     <!-- Date Badge -->
                     <div class="text-center me-sm-3 mb-3 mb-sm-0">
-                      <div class="bg-info text-white rounded-top px-3 py-1 fw-bold fs-5">
+                      <div class="text-white rounded-top px-3 py-1 fw-bold fs-5" style="font-size: 24px; background: #3eaeb2;">
                         <?php echo esc_html($session['date_time']->format('M')); ?>
                       </div>
                       <div class="border rounded-bottom px-2 py-1 fw-bold fs-5">
@@ -244,7 +244,7 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
     <div class="col-12">
       <div class="card shadow-sm">
         <div class="card-body">
-          <h4 class="card-title mb-3 fw-bold text-primary">💬 Chat with Your Mentor</h4>
+          <h4 class="card-title mb-3 fw-bold" style="color: #114470;">💬 Chat with Your Mentor</h4>
           <div class="alert alert-secondary mb-0">
             <?php echo do_shortcode('[user_chat_channels]'); ?>
           </div>

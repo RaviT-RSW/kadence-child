@@ -16,7 +16,7 @@ function register_manage_appointments_menu() {
         'manage-appointments',
         'render_manage_appointments_page',
         'dashicons-calendar-alt',
-        20
+        4
     );
 }
 add_action('admin_menu', 'register_manage_appointments_menu');

@@ -28,7 +28,7 @@ function urmentor_add_user_management_menu() {
         'urmentor-manage-users',
         'urmentor_manage_users_page',
         'dashicons-admin-users',
-        26
+        4
     );
     
     add_submenu_page(
@@ -48,7 +48,25 @@ function urmentor_add_user_management_menu() {
         'urmentor-child-mentor-assignments',
         'urmentor_child_mentor_assignments_page'
     );
+
+    // ✅ New submenu for See User Chat
+    add_submenu_page(
+        'urmentor-manage-users',
+        'See User Chat',
+        'See User Chat',
+        'manage_options',
+        'urmentor-see-user-chat',
+        'urmentor_see_user_chat_page'
+    );
 }
+
+// Callback function for the new submenu page
+function urmentor_see_user_chat_page() {
+    echo '<div class="wrap"><h1>See User Chat</h1>';
+    echo do_shortcode('[user_chat_channels]');
+    echo '</div>';
+}
+
 
 /**
  * Get User Profile Picture URL
@@ -1148,44 +1166,34 @@ function urmentor_custom_avatar($avatar, $id_or_email, $size, $default, $alt, $a
 
 
 <?php
-/**
- * Add Profile Picture field
- */
-add_action('show_user_profile', 'urmentor_user_profile_picture_field');
-add_action('edit_user_profile', 'urmentor_user_profile_picture_field');
-add_action('user_new_form', 'urmentor_user_profile_picture_field');
+add_action('show_user_profile', 'urmentor_user_profile_picture_field', 5);
+add_action('edit_user_profile', 'urmentor_user_profile_picture_field', 5);
+add_action('user_new_form', 'urmentor_user_profile_picture_field', 5);
+
 function urmentor_user_profile_picture_field($user) {
     $user_id = is_object($user) ? $user->ID : 0;
     $profile_picture_id = $user_id ? get_user_meta($user_id, 'custom_profile_picture', true) : '';
     $profile_picture_url = $profile_picture_id ? wp_get_attachment_url($profile_picture_id) : '';
-
     ?>
-    <h3>Profile Picture</h3>
-    <table class="form-table">
-        <tr>
-            <th><label for="profile_picture">Custom Profile Picture</label></th>
-            <td>
-                <div>
-                    <img id="profilePicPreview"
-                         src="<?php echo esc_url($profile_picture_url ?: get_avatar_url($user_id, ['size' => 150])); ?>"
-                         alt="Profile Picture"
-                         class="rounded-circle"
-                         style="width:120px; height:120px; object-fit:cover; border-radius:50%; border:2px solid #ddd; cursor:pointer;">
-                    <input type="file" id="profile_picture" name="profile_picture" accept="image/*" style="display:none;">
-                    <p class="description">Click the picture to change</p>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div id="urmentor-profile-picture-section" style="display: none;margin-top: -35px;">
+        <!-- <h3>Profile Picture</h3> -->
+        <table class="form-table">
+            <tr>
+                <th></th>
+                <td>
+                    <input type="file" id="profile_picture" name="profile_picture" accept="image/*" >
+                </td>
+            </tr>
+        </table>
+    </div>
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Profile picture functionality
         const img = document.getElementById("profilePicPreview");
         const fileInput = document.getElementById("profile_picture");
-
         if(img && fileInput){
             img.addEventListener("click", () => fileInput.click());
-
             fileInput.addEventListener("change", function(e) {
                 const file = e.target.files[0];
                 if (file) {
@@ -1197,6 +1205,55 @@ function urmentor_user_profile_picture_field($user) {
                 }
             });
         }
+
+        // Positioning logic - move before Account Management
+        setTimeout(function() {
+            const profileSection = document.getElementById('urmentor-profile-picture-section');
+            if (profileSection) {
+                let targetElement = null;
+
+                // Look for Account Management section
+                const allHeaders = document.querySelectorAll('h1, h2, h3');
+                for (let i = 0; i < allHeaders.length; i++) {
+                    const headerText = allHeaders[i].textContent.toLowerCase().trim();
+                    if (headerText.includes('account management') ||
+                        headerText.includes('new password') ||
+                        headerText.includes('change password')) {
+                        targetElement = allHeaders[i];
+                        break;
+                    }
+                }
+
+                // Fallback: look for password fields
+                if (!targetElement) {
+                    const passwordInputs = document.querySelectorAll('input[type="password"], #pass1, #pass2, .user-pass1-wrap, .user-pass-wrap');
+                    if (passwordInputs.length > 0) {
+                        // Find the table containing the password field
+                        const passwordTable = passwordInputs[0].closest('table');
+                        if (passwordTable) {
+                            // Look for the header before this table
+                            let prevElement = passwordTable.previousElementSibling;
+                            while (prevElement) {
+                                if (prevElement.tagName && (prevElement.tagName === 'H2' || prevElement.tagName === 'H3')) {
+                                    targetElement = prevElement;
+                                    break;
+                                }
+                                prevElement = prevElement.previousElementSibling;
+                            }
+                        }
+                    }
+                }
+
+                // Move the profile section before the target element
+                if (targetElement && targetElement.parentNode) {
+                    targetElement.parentNode.insertBefore(profileSection, targetElement);
+                    profileSection.style.display = 'block';
+                } else {
+                    // Fallback: show it where it is
+                    profileSection.style.display = 'block';
+                }
+            }
+        }, 100); // Small delay to ensure all elements are loaded
     });
     </script>
     <?php
@@ -1218,18 +1275,16 @@ add_action('user_new_form_tag', function() {
 add_action('personal_options_update', 'urmentor_save_profile_picture');
 add_action('edit_user_profile_update', 'urmentor_save_profile_picture');
 add_action('user_register', 'urmentor_save_profile_picture');
+
 function urmentor_save_profile_picture($user_id) {
     if (!current_user_can('edit_user', $user_id)) {
         return false;
     }
-
     if (!empty($_FILES['profile_picture']['name'])) {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
         require_once(ABSPATH . 'wp-admin/includes/media.php');
-
         $attachment_id = media_handle_upload('profile_picture', 0);
-
         if (!is_wp_error($attachment_id)) {
             // remove old pic
             $old = get_user_meta($user_id, 'custom_profile_picture', true);
@@ -1240,3 +1295,5 @@ function urmentor_save_profile_picture($user_id) {
         }
     }
 }
+
+?>
