@@ -1162,10 +1162,7 @@ function urmentor_custom_avatar($avatar, $id_or_email, $size, $default, $alt, $a
 
     return $avatar;
 }
-?>
 
-
-<?php
 add_action('show_user_profile', 'urmentor_user_profile_picture_field', 5);
 add_action('edit_user_profile', 'urmentor_user_profile_picture_field', 5);
 add_action('user_new_form', 'urmentor_user_profile_picture_field', 5);
