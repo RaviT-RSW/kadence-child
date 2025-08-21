@@ -1,6 +1,6 @@
 <?php
 /**
- * Adds a custom admin page to the WordPress dashboard for managing WooCommerce-based appointment orders with filters and pagination.
+ * Adds a custom admin page to the WordPress dashboard for managing WooCommerce-based appointment orders with filters, pagination, and CSV export.
  */
 
 /**
@@ -20,6 +20,17 @@ function register_manage_appointments_menu() {
     );
 }
 add_action('admin_menu', 'register_manage_appointments_menu');
+
+/**
+ * Handles CSV export early in the admin load process to avoid HTML output.
+ */
+function handle_appointments_export() {
+    if (isset($_GET['page']) && $_GET['page'] === 'manage-appointments' && isset($_GET['export_csv']) && $_GET['export_csv'] === '1') {
+        export_appointments_to_csv();
+        exit;
+    }
+}
+add_action('admin_init', 'handle_appointments_export');
 
 /**
  * Renders the custom admin page for managing WooCommerce-based appointment orders with filters and pagination.
@@ -102,7 +113,10 @@ function render_manage_appointments_page() {
 
     ?>
     <div class="wrap manage-appointments-wrap">
-        <h1 class="wp-heading-inline">Manage Appointments</h1>
+        <div class="appointments-header">
+            <h1 class="appointments-title">📅 Manage Appointments</h1>
+            <span class="appointments-subtitle">View, filter, export, and manage all your scheduled appointments with ease.</span>
+        </div>
         <hr class="wp-header-end">
 
         <!-- Filters -->
@@ -125,6 +139,11 @@ function render_manage_appointments_page() {
                     </select>
                 </label>
                 <button type="submit" class="button button-primary">Filter</button>
+                <div class="export-button" style="padding-left: 10%;">
+                    <button type="submit" name="export_csv" value="1" class="csv-export-button">
+                        Export as CSV
+                    </button>
+                </div>
             </div>
         </form>
 
@@ -264,6 +283,141 @@ function render_manage_appointments_page() {
             border-color: #0073aa;
             font-weight: 600;
         }
+        .csv-export-button {
+            background-color: #4CAF50;
+            color: white;
+            border: 1px solid #388E3C;
+            border-radius: 5px;
+            cursor: pointer;
+            min-height: 30px;
+            margin: 0;
+            padding: 0 10px;
+        }
+        .export-button :hover {
+            background-color: #1d7a21 !important;
+        }
+        .appointments-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #ffffff, #519dc1);
+            border-radius: 10px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        }
+        .appointments-title {
+            font-size: 26px;
+            font-weight: 600 !important;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .appointments-subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            display: block;
+            margin-top: 5px;
+        }
     </style>
     <?php
+}
+
+/**
+ * Exports the filtered appointments data to a CSV file.
+ *
+ * @since 1.0.0
+ */
+function export_appointments_to_csv() {
+    global $wpdb;
+
+    // Start output buffering to capture and control all output
+    ob_start();
+    // Handle filters from GET
+    $start_date = isset($_GET['start_date']) ? sanitize_text_field($_GET['start_date']) : '';
+    $end_date   = isset($_GET['end_date']) ? sanitize_text_field($_GET['end_date']) : '';
+    $status     = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '';
+
+    // Fetch all orders
+    $all_orders = wc_get_orders(array(
+        'type'   => 'shop_order',
+        'status' => array('wc-processing', 'wc-completed', 'wc-pending', 'wc-on-hold', 'wc-cancelled'),
+        'return' => 'ids',
+        'limit'  => -1,
+    ));
+
+    // Filter orders manually
+    $filtered_orders = array();
+    foreach ($all_orders as $order_id) {
+        $order = wc_get_order($order_id);
+        foreach ($order->get_items() as $item_id => $item) {
+            $session_date_time   = $item->get_meta('session_date_time');
+            $appointment_status  = $item->get_meta('appointment_status') ?: 'N/A';
+
+            if ($session_date_time) {
+                $date_time = new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata'));
+                $item_date = $date_time->format('Y-m-d');
+
+                $date_filter = true;
+                if ($start_date && $end_date) {
+                    $date_filter = ($item_date >= $start_date && $item_date <= $end_date);
+                } elseif ($start_date) {
+                    $date_filter = ($item_date >= $start_date);
+                } elseif ($end_date) {
+                    $date_filter = ($item_date <= $end_date);
+                }
+
+                $status_filter = ($status === '' || $appointment_status === $status);
+
+                if ($date_filter && $status_filter) {
+                    $child_id    = $item->get_meta('child_id');
+                    $child       = get_user_by('id', $child_id);
+                    $child_name  = $child ? $child->display_name . ' (ID: ' . $child_id . ')' : 'Unknown Child';
+
+                    $mentor_id   = $item->get_meta('mentor_id');
+                    $mentor      = get_user_by('id', $mentor_id);
+                    $mentor_name = $mentor ? $mentor->display_name . ' (ID: ' . $mentor_id . ')' : 'Unknown Mentor';
+
+                    $appointment_title = $item->get_name();
+
+                    $filtered_orders[] = array(
+                        'order_id'          => $order_id,
+                        'child_name'        => $child_name,
+                        'mentor_name'       => $mentor_name,
+                        'appointment_title' => $appointment_title,
+                        'session_date_time' => $date_time->format('M d, Y — h:i A'),
+                        'appointment_status'=> $appointment_status,
+                        'item_id'           => $item_id,
+                    );
+                }
+            }
+        }
+    }
+
+    // Clean the buffer to remove any prior output
+    ob_end_clean();
+
+    // Generate CSV
+    $filename = 'sessions-report-' . date('d-m-Y') . '.csv';
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+    fputcsv($output, array('Sr. No', 'Order Id', 'Child Name', 'Mentor Name', 'Appointment Title', 'Appointment Date/Time', 'Appointment Status'));
+
+    $sr_no = 1;
+    foreach ($filtered_orders as $appointment) {
+        fputcsv($output, array(
+            $sr_no++,
+            '#' . $appointment['order_id'],
+            ucfirst($appointment['child_name']),
+            ucfirst($appointment['mentor_name']),
+            ucfirst($appointment['appointment_title']),
+            $appointment['session_date_time'],
+            ucfirst($appointment['appointment_status']),
+        ));
+    }
+
+    fclose($output);
+    exit;
 }
