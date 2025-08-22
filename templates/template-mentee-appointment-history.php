@@ -227,7 +227,7 @@ if ($records) {
                             <tr>
                                 <td><?php echo ucfirst($mentee_name); ?></td>
                                 <td><?php echo esc_html($product_name); ?></td>
-                                <td>$<?php echo esc_html(number_format($order_amount, 2)); ?></td>
+                                <td><?php echo wc_price($order_amount); ?></td>
                                 <td><?php echo esc_html($session_date_time_obj->format('F d, Y - h:i A')); ?></td>
                                 <td><?php echo ucfirst($appointment_status); ?></td>
                                 <td>
