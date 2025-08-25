@@ -84,7 +84,7 @@ if (isset($error_message)) {
                 <label for="password">Password</label>
                 <input type="password" name="password" id="password" required class="form-control">
                 <!-- Eye icon -->
-                <i class="fa-solid fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 45px; cursor: pointer;"></i>
+                <i class="fas fa-solid fa-eye-slash" id="togglePassword" style="position: absolute; right: 15px; top: 45px; cursor: pointer;"></i>
             </div>
             <div class="form-group">
                 <label><input type="checkbox" name="rememberme" id="rememberme"> Remember Me</label>

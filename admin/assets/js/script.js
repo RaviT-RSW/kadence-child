@@ -130,6 +130,23 @@ jQuery(document).ready(function($) {
         subtree: true,
         characterData: true // Also observe changes within text nodes
     });
+
+    setTimeout(function() {
+        // Hide global tab
+        $('.wcTabs .wcTab .wcName').each(function() {
+            if ($(this).text().trim() === 'global') {
+                $(this).closest('.wcTab').hide();
+            }
+        });
+
+        // Hide global channel
+        $('.wcPublicChannels .wcName').each(function() {
+            if ($(this).text().trim() === 'global') {
+                $(this).closest('.wcChannelTrigger').hide();
+            }
+        });
+    }, 500);
+
 });
 
 // Change the channel name in wise chat pro chatbox end

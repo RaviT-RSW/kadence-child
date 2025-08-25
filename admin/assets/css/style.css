@@ -204,5 +204,7 @@
 .wcDirectChannels{
     display: none !important;
 }
-
+.wcContainer .wcBrowser .wcPublicChannels .wcList{
+    min-height: 400px !important;
+}
 /* Wise chat box css End */
