@@ -8,6 +8,7 @@
  * - Bookings overview
  * - Payment volume
  * - Calendar view
+ * - Monthly appointments graph with status breakdown
  * 
  * Features:
  * - Real-time statistics
@@ -56,6 +57,27 @@ function urmentor_dashboard_page() {
             'borderColor' => $session['appointment_status'] === 'completed' ? '#00a32a' : ($session['appointment_status'] === 'cancelled' ? '#d63638' : '#0073aa'),
         );
     }
+
+    // Prepare monthly appointment data for the chart
+    $monthly_appointments = array(
+        'total' => array_fill(1, 12, 0),
+        'pending' => array_fill(1, 12, 0),
+        'approved' => array_fill(1, 12, 0),
+        'cancelled' => array_fill(1, 12, 0),
+        'finished' => array_fill(1, 12, 0)
+    );
+    $current_year = date('Y'); // 2025
+    foreach ($metrics['sessions'] as $session) {
+        $session_month = (int)$session['date_time']->format('m'); // 1-12
+        if ($session['date_time']->format('Y') === $current_year) {
+            $monthly_appointments['total'][$session_month]++;
+            $status = $session['appointment_status'];
+            if (isset($monthly_appointments[$status])) {
+                $monthly_appointments[$status][$session_month]++;
+            }
+        }
+    }
+    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     ?>
     <div class="wrap urmentor-dashboard">
@@ -125,10 +147,12 @@ function urmentor_dashboard_page() {
                     <p> Total Earnings </p>
                 </div>
             </div>
-
-
         </div>
-
+        <!-- Monthly Appointments Graph -->
+        <div class="dashboard-graph-container">
+            <h2>Monthly Appointments by Status (<?php echo $current_year; ?>)</h2>
+            <canvas id="monthlyAppointmentsChart"></canvas>
+        </div>
         <!-- Quick Actions -->
         <div class="dashboard-quick-actions">
             <h2>Quick Actions</h2>
@@ -189,8 +213,162 @@ function urmentor_dashboard_page() {
                 }
             });
             calendar.render();
+
+            // Monthly Appointments Chart
+            var ctx = document.getElementById('monthlyAppointmentsChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode($months); ?>,
+                    datasets: [
+                        {
+                            label: 'Total Booked',
+                            data: <?php echo json_encode(array_values($monthly_appointments['total'])); ?>,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            hoverBackgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        },
+                        {
+                            label: 'Pending',
+                            data: <?php echo json_encode(array_values($monthly_appointments['pending'])); ?>,
+                            backgroundColor: 'rgba(241, 196, 15, 0.6)', // Yellow
+                            borderColor: 'rgba(241, 196, 15, 1)',
+                            borderWidth: 1,
+                            hoverBackgroundColor: 'rgba(241, 196, 15, 0.8)',
+                        },
+                        {
+                            label: 'Approved',
+                            data: <?php echo json_encode(array_values($monthly_appointments['approved'])); ?>,
+                            backgroundColor: 'rgba(46, 204, 113, 0.6)', // Green
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 1,
+                            hoverBackgroundColor: 'rgba(46, 204, 113, 0.8)',
+                        },
+                        {
+                            label: 'Cancelled',
+                            data: <?php echo json_encode(array_values($monthly_appointments['cancelled'])); ?>,
+                            backgroundColor: 'rgba(231, 76, 60, 0.6)', // Red
+                            borderColor: 'rgba(231, 76, 60, 1)',
+                            borderWidth: 1,
+                            hoverBackgroundColor: 'rgba(231, 76, 60, 0.8)',
+                        },
+                        {
+                            label: 'Finished',
+                            data: <?php echo json_encode(array_values($monthly_appointments['finished'])); ?>,
+                            backgroundColor: 'rgba(155, 89, 182, 0.6)', // Purple
+                            borderColor: 'rgba(155, 89, 182, 1)',
+                            borderWidth: 1,
+                            hoverBackgroundColor: 'rgba(155, 89, 182, 0.8)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14
+                                },
+                                generateLabels: function(chart) {
+                                    var data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.datasets.map(function(dataset, i) {
+                                            var meta = chart.getDatasetMeta(i);
+                                            var style = {
+                                                text: dataset.label,
+                                                fillStyle: dataset.backgroundColor,
+                                                strokeStyle: dataset.borderColor,
+                                                lineWidth: dataset.borderWidth,
+                                                hidden: isNaN(dataset.data[0]) || meta.hidden,
+                                                index: i
+                                            };
+                                            return {
+                                                text: style.text,
+                                                fillStyle: style.fillStyle,
+                                                strokeStyle: style.strokeStyle,
+                                                lineWidth: style.lineWidth,
+                                                hidden: style.hidden,
+                                                datasetIndex: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            },
+                            onClick: function(e, legendItem) {
+                                var index = legendItem.datasetIndex;
+                                var ci = chart;
+                                var meta = ci.getDatasetMeta(index);
+                                meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+                                ci.update();
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Months'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Appointments'
+                            },
+                            ticks: {
+                                stepSize: 1,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         });
     </script>
+
+    <style>
+        .dashboard-graph-container {
+            margin-bottom: 20px;
+        }
+        #monthlyAppointmentsChart {
+            max-height: 400px;
+            margin-top: 10px;
+        }
+        .dashboard-graph-container {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+    </style>
     <?php
 }
 
