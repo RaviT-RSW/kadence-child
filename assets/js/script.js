@@ -211,7 +211,29 @@ jQuery(document).ready(function($) {
                 $(this).closest('.wcChannelTrigger').hide();
             }
         });
-    }, 1000);
+
+
+        $('.wcTabContent .wcName').each(function() {
+            if ($(this).text().trim() === 'global') {
+                $(this).closest('.wcChannelEntry').hide();
+            }
+        });
+
+        $('.wcTabsCompact .wcName').each(function() {
+            if ($(this).text().trim() === 'Chats') {
+                $(this).closest('.wcTabChats').hide();
+            }
+        });
+
+        $('.wcTabsCompact .wcName').each(function() {
+            if ($(this).text().trim() === 'Users') {
+                $(this).closest('.wcTabUsers').hide();
+            }
+        });
+
+
+
+    }, 1200);
 
 });
 
