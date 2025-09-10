@@ -119,9 +119,9 @@ get_header();
               });
               $next_session = !empty($future_sessions) ? array_shift($future_sessions) : null;
               $next_status_class = '';
-              if ($next_session['appointment_status'] === 'approved') {
+              if ($next_session && $next_session['appointment_status'] === 'approved') {
                 $next_status_class = 'badge bg-success text-light';
-              } elseif ($next_session['appointment_status'] === 'cancelled') {
+              } elseif ($next_session && $next_session['appointment_status'] === 'cancelled') {
                 $next_status_class = 'badge bg-danger text-light';
               } else {
                 $next_status_class = 'badge bg-info text-light';
@@ -452,13 +452,6 @@ get_header();
     align-items: center;
     margin-bottom: 15px;
   }
-  select {
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: white;
-    cursor: pointer;
-  }
   .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -511,6 +504,7 @@ get_header();
   }
   .time-slot.inactive {
     color: #ccc;
+    background: #f8f9fa;
     pointer-events: none;
   }
   .time-slot.selected {
@@ -530,9 +524,17 @@ document.addEventListener('DOMContentLoaded', function() {
         "July", "August", "September", "October", "November", "December"
     ];
 
-    let currentMonth = new Date().getMonth(); // August (7) on 2025-08-18
-    let currentYear = new Date().getFullYear(); // 2025
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
     let selectedDate = null;
+    const now = new Date();
+
+    // Parse mentor hours into objects with off flag and slots
+    for (let mentorId in mentorHours) {
+        for (let day in mentorHours[mentorId]) {
+            mentorHours[mentorId][day] = mentorHours[mentorId][day] ? JSON.parse(mentorHours[mentorId][day]) : { off: true, slots: [] };
+        }
+    }
 
     // Populate month and year dropdowns in modal
     function populateMonthYear() {
@@ -546,6 +548,21 @@ document.addEventListener('DOMContentLoaded', function() {
         yearSelect.innerHTML = years;
     }
 
+    // Get max slots based on multiple time ranges
+    function getMaxSlots(dayData) {
+        if (!dayData || !dayData.slots || !Array.isArray(dayData.slots) || dayData.slots.length === 0) return 0;
+        let totalHours = 0;
+        dayData.slots.forEach(slot => {
+            if (slot.start_time && slot.end_time) {
+                const start = new Date(`2000-01-01 ${slot.start_time}`);
+                const end = new Date(`2000-01-01 ${slot.end_time}`);
+                const diffMs = end - start;
+                totalHours += diffMs / (1000 * 60 * 60);
+            }
+        });
+        return Math.floor(totalHours);
+    }
+
     // Render calendar with disabled dates
     function renderCalendar() {
         const calendarDays = document.getElementById("rescheduleCalendarDays");
@@ -554,8 +571,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const startDay = (firstDay.getDay() + 6) % 7; // Make Monday start
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
         const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
         // Prev month dates (always inactive)
         for (let i = startDay; i > 0; i--) {
@@ -573,11 +588,12 @@ document.addEventListener('DOMContentLoaded', function() {
             date.className = "date";
             date.textContent = i;
 
-            // Check if the date is in the past
-            const isPastDate = currentDate < today;
+            // Check if the date is in the past or today past current time
+            const isPastDate = currentDate < now.setHours(0, 0, 0, 0) || 
+                              (currentDate.toDateString() === now.toDateString() && new Date(fullDate) < now);
 
             // Highlight today
-            if (i === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+            if (i === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear()) {
                 date.classList.add("today");
             }
 
@@ -585,9 +601,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isPastDate || !currentMentorId) {
                 date.classList.add("inactive");
             } else {
-                const dayName = new Date(currentYear, currentMonth, i).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                 const dayData = mentorHours[currentMentorId] && mentorHours[currentMentorId][dayName];
-                if (!dayData || (dayData === null) || (bookedSlots[fullDate] && bookedSlots[fullDate].length >= getMaxSlots(dayData))) {
+                const isDayOff = dayData && dayData.off;
+                const slots = dayData && dayData.slots ? dayData.slots : [];
+                if (isDayOff || slots.length === 0 || (bookedSlots[fullDate] && bookedSlots[fullDate].length >= getMaxSlots(dayData))) {
                     date.classList.add("inactive");
                 }
             }
@@ -608,18 +626,6 @@ document.addEventListener('DOMContentLoaded', function() {
             date.textContent = i;
             calendarDays.appendChild(date);
         }
-    }
-
-    // Get max slots based on working hours
-    function getMaxSlots(dayData) {
-        if (!dayData) return 0;
-        const { start_time, end_time } = JSON.parse(dayData || '{}');
-        if (!start_time || !end_time) return 0;
-        const start = new Date(`2000-01-01 ${start_time}`);
-        const end = new Date(`2000-01-01 ${end_time}`);
-        const diffMs = end - start;
-        const diffHrs = diffMs / (1000 * 60 * 60);
-        return Math.floor(diffHrs);
     }
 
     // Select date and render time slots
@@ -649,50 +655,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
         const dayData = mentorHours[currentMentorId][dayName];
-        if (!dayData || dayData === null) {
+        if (!dayData || dayData.off || !dayData.slots || dayData.slots.length === 0) {
             submitButton.disabled = true;
             return;
         }
 
-        const { start_time, end_time } = JSON.parse(dayData);
-        let currentTime = new Date(`2000-01-01 ${start_time}`);
-        const endTime = new Date(`2000-01-01 ${end_time}`);
         const bookedTimes = bookedSlots[fullDate] || [];
+        const currentDateTime = new Date(fullDate);
 
-        while (currentTime < endTime) {
-            const slotStart = currentTime.toTimeString().slice(0, 5);
-            const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
-            const slotEnd = slotEndTime.toTimeString().slice(0, 5);
+        dayData.slots.forEach(slot => {
+            if (!slot.start_time || !slot.end_time) return;
+            let currentTime = new Date(`2000-01-01 ${slot.start_time}`);
+            const endTime = new Date(`2000-01-01 ${slot.end_time}`);
 
-            if (slotEndTime > endTime) break;
+            while (currentTime < endTime) {
+                const slotStart = currentTime.toTimeString().slice(0, 5);
+                const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                const slotEnd = slotEndTime.toTimeString().slice(0, 5);
 
-            const slotTime = `${slotStart} - ${slotEnd}`;
-            const slotStartFull = new Date(`${fullDate}T${slotStart}:00`);
-            const slotEndFull = new Date(slotStartFull.getTime() + 60 * 60 * 1000);
+                if (slotEndTime > endTime) break;
 
-            const isBooked = bookedTimes.some(bookedTime => {
-                const bookedStartFull = new Date(`${fullDate}T${bookedTime}:00`);
-                const bookedEndFull = new Date(bookedStartFull.getTime() + 60 * 60 * 1000);
-                return slotStartFull < bookedEndFull && slotEndFull > bookedStartFull;
-            });
+                const slotTime = `${slotStart} - ${slotEnd}`;
+                const slotStartFull = new Date(`${fullDate}T${slotStart}:00`);
+                const slotEndFull = new Date(slotStartFull.getTime() + 60 * 60 * 1000);
 
-            const slot = document.createElement("div");
-            slot.className = "time-slot";
-            slot.textContent = slotTime;
-            if (isBooked) {
-                slot.classList.add("inactive");
-            } else {
-                slot.addEventListener("click", () => {
-                    document.querySelectorAll(".time-slot").forEach(ts => ts.classList.remove("selected"));
-                    slot.classList.add("selected");
-                    document.getElementById("rescheduleSelectedSlot").value = `${fullDate} ${slotStart}:00`;
-                    submitButton.disabled = false;
+                // Check if slot is in the past for today
+                const isPast = currentDateTime.toDateString() === now.toDateString() && slotStartFull < now;
+
+                // Check if the slot is booked
+                const isBooked = bookedTimes.some(bookedTime => {
+                    const bookedStartFull = new Date(`${fullDate}T${bookedTime}:00`);
+                    const bookedEndFull = new Date(bookedStartFull.getTime() + 60 * 60 * 1000);
+                    return slotStartFull < bookedEndFull && slotEndFull > bookedStartFull;
                 });
-            }
-            timeSlotsContainer.appendChild(slot);
 
-            currentTime = new Date(currentTime.getTime() + 60 * 60000);
-        }
+                const slot = document.createElement("div");
+                slot.className = "time-slot";
+                slot.textContent = slotTime;
+                if (isPast || isBooked) {
+                    slot.classList.add("inactive");
+                } else {
+                    slot.addEventListener("click", () => {
+                        document.querySelectorAll(".time-slot").forEach(ts => ts.classList.remove("selected"));
+                        slot.classList.add("selected");
+                        document.getElementById("rescheduleSelectedSlot").value = `${fullDate} ${slotStart}:00`;
+                        submitButton.disabled = false;
+                    });
+                }
+                timeSlotsContainer.appendChild(slot);
+
+                currentTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+            }
+        });
     }
 
     // Fetch booked slots for the month
@@ -793,7 +807,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 location.reload();
             } else {
-                showNotification('Failed to reschedule: ' + data.message, 'danger');
+                showNotification('Failed to reschedule: ' + (data.data?.message || 'Unknown error'), 'danger');
             }
         })
         .catch(error => {

@@ -124,50 +124,64 @@ get_header();
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        let currentMentorId = null;
-        let mentorHours = {};
-        let bookedSlots = {}; // Initialize as an object
+document.addEventListener('DOMContentLoaded', function() {
+    let currentMentorId = null;
+    let mentorHours = {};
+    let bookedSlots = {}; // Initialize as an object
 
-        const childSelect = document.getElementById('childSelect');
-        const mentorSelect = document.getElementById('mentorSelect');
-        const sessionProduct = document.getElementById('sessionProduct');
-        const selectedSlot = document.getElementById('selectedSlot');
-        const submitButton = document.querySelector('#bookSessionForm button[type="submit"]');
-        const monthSelect = document.getElementById("monthSelect");
-        const yearSelect = document.getElementById("yearSelect");
-        const calendarDays = document.getElementById("calendarDays");
-        const selectedDateText = document.getElementById("selectedDateText");
-        const timeSlotsContainer = document.getElementById("timeSlots");
+    const childSelect = document.getElementById('childSelect');
+    const mentorSelect = document.getElementById('mentorSelect');
+    const sessionProduct = document.getElementById('sessionProduct');
+    const selectedSlot = document.getElementById('selectedSlot');
+    const submitButton = document.querySelector('#bookSessionForm button[type="submit"]');
+    const monthSelect = document.getElementById("monthSelect");
+    const yearSelect = document.getElementById("yearSelect");
+    const calendarDays = document.getElementById("calendarDays");
+    const selectedDateText = document.getElementById("selectedDateText");
+    const timeSlotsContainer = document.getElementById("timeSlots");
 
-        const months = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-        ];
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
 
-        let currentMonth = new Date().getMonth(); // August (7) on 2025-08-13
-        let currentYear = new Date().getFullYear(); // 2025
-        let selectedDate = null;
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let selectedDate = null;
+    const now = new Date();
 
-        // Populate month and year dropdowns
-        function populateMonthYear() {
-            monthSelect.innerHTML = months.map((m, i) => `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${m}</option>`).join("");
-            let years = "";
-            for (let y = currentYear - 5; y <= currentYear + 5; y++) {
-                years += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
-            }
-            yearSelect.innerHTML = years;
+    // Populate month and year dropdowns
+    function populateMonthYear() {
+        monthSelect.innerHTML = months.map((m, i) => `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${m}</option>`).join("");
+        let years = "";
+        for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+            years += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
         }
+        yearSelect.innerHTML = years;
+    }
 
-        // Render calendar with disabled dates
-        function renderCalendar() {
+    // Get max slots based on multiple time ranges
+    function getMaxSlots(dayData) {
+        if (!dayData || !Array.isArray(dayData) || dayData.length === 0) return 0;
+        let totalHours = 0;
+        dayData.forEach(slot => {
+            if (slot.start_time && slot.end_time) {
+                const start = new Date(`2000-01-01 ${slot.start_time}`);
+                const end = new Date(`2000-01-01 ${slot.end_time}`);
+                const diffMs = end - start;
+                totalHours += diffMs / (1000 * 60 * 60);
+            }
+        });
+        return Math.floor(totalHours);
+    }
+
+    // Render calendar with disabled dates
+    function renderCalendar() {
         calendarDays.querySelectorAll(".date").forEach(el => el.remove());
         const firstDay = new Date(currentYear, currentMonth, 1);
         const startDay = (firstDay.getDay() + 6) % 7; // Make Monday start
         const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
         const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
-        const today = new Date(); // Current date for comparison
-        today.setHours(0, 0, 0, 0); // Normalize to midnight for accurate comparison
 
         // Prev month dates (always inactive)
         for (let i = startDay; i > 0; i--) {
@@ -185,11 +199,12 @@ get_header();
             date.className = "date";
             date.textContent = i;
 
-            // Check if the date is in the past
-            const isPastDate = currentDate < today;
+            // Check if the date is in the past or today past current time
+            const isPastDate = currentDate < now.setHours(0, 0, 0, 0) || 
+                              (currentDate.toDateString() === now.toDateString() && new Date(fullDate) < now);
 
             // Highlight today
-            if (i === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+            if (i === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear()) {
                 date.classList.add("today");
             }
 
@@ -197,9 +212,11 @@ get_header();
             if (isPastDate || !currentMentorId) {
                 date.classList.add("inactive");
             } else {
-                const dayName = new Date(currentYear, currentMonth, i).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
                 const dayData = mentorHours[currentMentorId] && mentorHours[currentMentorId][dayName];
-                if (!dayData || (dayData === null) || (bookedSlots[fullDate] && bookedSlots[fullDate].length >= getMaxSlots(dayData))) {
+                const isDayOff = dayData && dayData.off;
+                const slots = dayData && dayData.slots ? dayData.slots : [];
+                if (isDayOff || slots.length === 0 || (bookedSlots[fullDate] && bookedSlots[fullDate].length >= getMaxSlots(slots))) {
                     date.classList.add("inactive");
                 }
             }
@@ -222,18 +239,6 @@ get_header();
         }
     }
 
-    // Get max slots based on working hours
-    function getMaxSlots(dayData) {
-        if (!dayData) return 0;
-        const { start_time, end_time } = JSON.parse(dayData || '{}');
-        if (!start_time || !end_time) return 0;
-        const start = new Date(`2000-01-01 ${start_time}`);
-        const end = new Date(`2000-01-01 ${end_time}`);
-        const diffMs = end - start;
-        const diffHrs = diffMs / (1000 * 60 * 60);
-        return Math.floor(diffHrs);
-    }
-
     // Select date and render time slots
     function selectDate(day, fullDate) {
         document.querySelectorAll(".date").forEach(d => d.classList.remove("selected"));
@@ -245,10 +250,7 @@ get_header();
         });
         selectedDate = new Date(currentYear, currentMonth, day);
         selectedDateText.textContent = selectedDate.toDateString();
-
-        // Use local date in YYYY-MM-DD format
-        const fullDateLocal = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        renderTimeSlots(fullDateLocal); // Pass the local date
+        renderTimeSlots(fullDate);
     }
 
     // Render time slots with correct booked slot disabling
@@ -258,49 +260,56 @@ get_header();
 
         const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
         const dayData = mentorHours[currentMentorId][dayName];
-        if (!dayData || dayData === null) return;
+        if (!dayData || dayData.off || !dayData.slots || dayData.slots.length === 0) return;
 
-        const { start_time, end_time } = JSON.parse(dayData);
-        let currentTime = new Date(`2000-01-01 ${start_time}`);
-        const endTime = new Date(`2000-01-01 ${end_time}`);
-        const bookedTimes = bookedSlots[fullDate] || []; // Array of booked times for the date
+        const bookedTimes = bookedSlots[fullDate] || [];
+        const currentDateTime = new Date(fullDate);
 
-        while (currentTime < endTime) {
-            const slotStart = currentTime.toTimeString().slice(0, 5);
-            const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
-            const slotEnd = slotEndTime.toTimeString().slice(0, 5);
+        dayData.slots.forEach(slot => {
+            if (!slot.start_time || !slot.end_time) return;
+            let currentTime = new Date(`2000-01-01 ${slot.start_time}`);
+            const endTime = new Date(`2000-01-01 ${slot.end_time}`);
 
-            // Ensure the slot end time does not exceed the mentor's end time
-            if (slotEndTime > endTime) break;
+            while (currentTime < endTime) {
+                const slotStart = currentTime.toTimeString().slice(0, 5);
+                const slotEndTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+                const slotEnd = slotEndTime.toTimeString().slice(0, 5);
 
-            const slotTime = `${slotStart} - ${slotEnd}`;
-            const slotStartFull = new Date(`${fullDate}T${slotStart}:00`);
-            const slotEndFull = new Date(slotStartFull.getTime() + 60 * 60 * 1000);
+                // Ensure the slot end time does not exceed the mentor's end time
+                if (slotEndTime > endTime) break;
 
-            // Check if the slot is booked
-            const isBooked = bookedTimes.some(bookedTime => {
-                const bookedStartFull = new Date(`${fullDate}T${bookedTime}:00`);
-                const bookedEndFull = new Date(bookedStartFull.getTime() + 60 * 60 * 1000);
-                return slotStartFull < bookedEndFull && slotEndFull > bookedStartFull;
-            });
+                const slotTime = `${slotStart} - ${slotEnd}`;
+                const slotStartFull = new Date(`${fullDate}T${slotStart}:00`);
+                const slotEndFull = new Date(slotStartFull.getTime() + 60 * 60 * 1000);
 
-            const slot = document.createElement("div");
-            slot.className = "time-slot";
-            slot.textContent = slotTime;
-            if (isBooked) {
-                slot.classList.add("inactive");
-            } else {
-                slot.addEventListener("click", () => {
-                    document.querySelectorAll(".time-slot").forEach(ts => ts.classList.remove("selected"));
-                    slot.classList.add("selected");
-                    selectedSlot.value = `${fullDate} ${slotStart}:00`;
-                    submitButton.disabled = false;
+                // Check if slot is in the past for today
+                const isPast = currentDateTime.toDateString() === now.toDateString() && slotStartFull < now;
+
+                // Check if the slot is booked
+                const isBooked = bookedTimes.some(bookedTime => {
+                    const bookedStartFull = new Date(`${fullDate}T${bookedTime}:00`);
+                    const bookedEndFull = new Date(bookedStartFull.getTime() + 60 * 60 * 1000);
+                    return slotStartFull < bookedEndFull && slotEndFull > bookedStartFull;
                 });
-            }
-            timeSlotsContainer.appendChild(slot);
 
-            currentTime = new Date(currentTime.getTime() + 60 * 60000);
-        }
+                const slot = document.createElement("div");
+                slot.className = "time-slot";
+                slot.textContent = slotTime;
+                if (isPast || isBooked) {
+                    slot.classList.add("inactive");
+                } else {
+                    slot.addEventListener("click", () => {
+                        document.querySelectorAll(".time-slot").forEach(ts => ts.classList.remove("selected"));
+                        slot.classList.add("selected");
+                        selectedSlot.value = `${fullDate} ${slotStart}:00`;
+                        submitButton.disabled = false;
+                    });
+                }
+                timeSlotsContainer.appendChild(slot);
+
+                currentTime = new Date(currentTime.getTime() + 60 * 60 * 1000);
+            }
+        });
     }
 
     // Fetch booked slots for the month
@@ -321,21 +330,8 @@ get_header();
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Check if booked_slots exists, default to empty object if undefined
-                const slots = data.data && data.data.booked_slots ? data.data.booked_slots : {};
-                
-                // Initialize an empty object to store processed slots
-                bookedSlots = {};
-
-                // Loop through the booked slots object
-                Object.keys(slots).forEach(date => {
-                    const times = slots[date];
-                    bookedSlots[date] = times; // Directly assign the times to the date key
-                });
-
-                renderCalendar(); // Re-render calendar with updated bookedSlots
-
-                // Re-render time slots if a date is already selected
+                bookedSlots = data.data && data.data.booked_slots ? data.data.booked_slots : {};
+                renderCalendar();
                 if (selectedDate) {
                     const fullDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
                     renderTimeSlots(fullDate);
@@ -395,7 +391,11 @@ get_header();
                 sessionProduct.disabled = false;
                 selectedSlot.disabled = false;
                 currentMentorId = mentor.id;
-                mentorHours[currentMentorId] = data.data.working_hours || {};
+                mentorHours[currentMentorId] = {};
+                for (let day in data.data.working_hours) {
+                    const parsedData = data.data.working_hours[day] ? JSON.parse(data.data.working_hours[day]) : { off: true, slots: [] };
+                    mentorHours[currentMentorId][day.toLowerCase()] = parsedData;
+                }
                 fetchBookedSlots(currentMentorId, currentYear, currentMonth + 1);
             } else {
                 mentorSelect.innerHTML = '<option value="">No mentor assigned</option>';
@@ -502,13 +502,6 @@ get_header();
     align-items: center;
     margin-bottom: 15px;
 }
-select, button {
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: white;
-    cursor: pointer;
-}
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -561,6 +554,7 @@ select, button {
 }
 .time-slot.inactive {
     color: #ccc;
+    background: #f8f9fa;
     pointer-events: none;
 }
 .time-slot.selected {
@@ -572,16 +566,16 @@ select, button {
     cursor: not-allowed;
 }
 button {
-  color: black;
-  background-color: transparent;
-  padding: 5px 10px;
-  cursor: pointer;
-  outline: none;
+    color: black;
+    background-color: transparent;
+    padding: 5px 10px;
+    cursor: pointer;
+    outline: none;
 }
 
 button:hover {
-  background-color: transparent;
-  color: black;
+    background-color: transparent;
+    color: black;
 }
 </style>
 

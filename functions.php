@@ -156,13 +156,13 @@ function handle_save_working_hours() {
 
     $hours_data = [
         'mentor_id' => $mentor_id,
-        'monday' => $data['Monday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Monday']['startTime'], 'end_time' => $data['Monday']['endTime']]),
-        'tuesday' => $data['Tuesday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Tuesday']['startTime'], 'end_time' => $data['Tuesday']['endTime']]),
-        'wednesday' => $data['Wednesday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Wednesday']['startTime'], 'end_time' => $data['Wednesday']['endTime']]),
-        'thursday' => $data['Thursday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Thursday']['startTime'], 'end_time' => $data['Thursday']['endTime']]),
-        'friday' => $data['Friday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Friday']['startTime'], 'end_time' => $data['Friday']['endTime']]),
-        'saturday' => $data['Saturday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Saturday']['startTime'], 'end_time' => $data['Saturday']['endTime']]),
-        'sunday' => $data['Sunday']['dayOff'] ? NULL : json_encode(['start_time' => $data['Sunday']['startTime'], 'end_time' => $data['Sunday']['endTime']]),
+        'monday' => !empty($data['Monday']) ? json_encode($data['Monday']) : NULL,
+        'tuesday' => !empty($data['Tuesday']) ? json_encode($data['Tuesday']) : NULL,
+        'wednesday' => !empty($data['Wednesday']) ? json_encode($data['Wednesday']) : NULL,
+        'thursday' => !empty($data['Thursday']) ? json_encode($data['Thursday']) : NULL,
+        'friday' => !empty($data['Friday']) ? json_encode($data['Friday']) : NULL,
+        'saturday' => !empty($data['Saturday']) ? json_encode($data['Saturday']) : NULL,
+        'sunday' => !empty($data['Sunday']) ? json_encode($data['Sunday']) : NULL,
     ];
 
     $existing = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table_name WHERE mentor_id = %d", $mentor_id));
