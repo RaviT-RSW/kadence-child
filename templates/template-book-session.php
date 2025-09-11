@@ -95,14 +95,20 @@ get_header();
           </select>
         </div>
 
-        <?php if ($is_parent) : ?>
         <div class="mb-3">
-          <label for="mentorSelect" class="form-label">Select Mentor</label>
+          <label for="mentorSelect" class="form-label">Selected Mentor</label>
           <select class="form-select" id="mentorSelect" name="mentorSelect" required disabled>
-            <option value="">Select a child first</option>
+            <?php if ($is_parent): ?>
+              <option value="">Select a child first</option>
+            <?php else: ?>
+              <option value="<?php echo esc_attr($current_user->ID); ?>" selected><?php echo esc_html($current_user->display_name); ?></option>
+            <?php endif; ?>
           </select>
+          <?php if ($is_mentor): ?>
+            <input type="hidden" name="mentorSelect" value="<?php echo esc_attr($current_user->ID); ?>">
+          <?php endif; ?>
         </div>
-        <?php endif; ?>
+
 
         <div class="mb-3">
           <label for="sessionProduct" class="form-label">Select Session</label>

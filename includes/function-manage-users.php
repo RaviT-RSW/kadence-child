@@ -909,7 +909,17 @@ function urmentor_child_mentor_assignments_page() {
     $available_children = array_filter($child_users, function($user) {
         return !get_user_meta($user->ID, 'assigned_mentor_id', true);
     });
-
+    
+    // Check for child_id in URL for pre-selection
+    $preselected_child_id = isset($_GET['child_id']) ? intval($_GET['child_id']) : 0;
+    $is_valid_preselect = false;
+    if ($preselected_child_id) {
+        // Verify the child_id is valid and has no assigned mentor
+        $child_exists = array_filter($available_children, function($user) use ($preselected_child_id) {
+            return $user->ID == $preselected_child_id;
+        });
+        $is_valid_preselect = !empty($child_exists);
+    }
     // Handle assigned users list
     $per_page = 10;
     $paged = isset($_GET['paged']) ? max(0, intval($_GET['paged']) - 1) : 0;
@@ -953,10 +963,10 @@ function urmentor_child_mentor_assignments_page() {
     <div class="wrap">
         <h1>Child-Mentor Assignments</h1>
         <?php echo $message; ?>
-        <p id="assign-mentor-button-container">
+        <p id="assign-mentor-button-container" style="<?php echo $is_valid_preselect ? 'display: none;' : ''; ?>">
             <button id="assign-mentor-btn" class="button button-primary">Assign Mentor</button>
         </p>
-        <div id="assign-mentor-form" style="display:none; margin-bottom: 20px;">
+        <div id="assign-mentor-form" style="margin-bottom: 20px; <?php echo $is_valid_preselect ? '' : 'display: none;'; ?>">
             <form method="post" action="">
                 <?php wp_nonce_field('assign_mentor', 'mentor_nonce'); ?>
                 <table class="form-table">
@@ -966,7 +976,9 @@ function urmentor_child_mentor_assignments_page() {
                             <select name="child_user" id="child_user" class="regular-text" required>
                                 <option value="">Select a Child</option>
                                 <?php foreach ($available_children as $user) : ?>
-                                    <option value="<?php echo esc_attr($user->ID); ?>"><?php echo esc_html($user->display_name); ?></option>
+                                    <option value="<?php echo esc_attr($user->ID); ?>" <?php echo ($is_valid_preselect && $user->ID == $preselected_child_id) ? 'selected' : ''; ?>>
+                                        <?php echo esc_html($user->display_name); ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </td>
