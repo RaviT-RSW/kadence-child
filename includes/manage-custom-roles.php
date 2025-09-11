@@ -179,7 +179,7 @@ function get_page_access_rules() {
         
         // Other pages - add as needed
         'user-profile' => array('child_user', 'parent_user', 'mentor_user'),
-        'book-session' => array('parent_user'),
+        'book-session' => array('parent_user', 'mentor_user'),
         'working-hours' => array('mentor_user'),
         
         // Add more pages here as needed

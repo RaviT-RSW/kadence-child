@@ -8,7 +8,11 @@ get_header();
 <div class="container my-5">
   <?php
   $current_user = wp_get_current_user();
-  if (!is_user_logged_in() || !in_array('parent_user', (array)$current_user->roles)) :
+  $user_roles = (array)$current_user->roles;
+  $is_parent = in_array('parent_user', $user_roles);
+  $is_mentor = in_array('mentor_user', $user_roles);
+  
+  if (!is_user_logged_in() || (!$is_parent && !$is_mentor)) :
   ?>
     <div class="container my-5">
       <div class="row justify-content-center">
@@ -35,7 +39,7 @@ get_header();
   endif;
 
   global $wpdb;
-  $parent_id = $current_user->ID;
+  $user_id = $current_user->ID;
 
   // Fetch WooCommerce products (sessions)
   $args = array(
@@ -51,23 +55,36 @@ get_header();
   );
   $products = get_posts($args);
 
-  // Fetch children of current parent
-  $children = get_users(array(
-      'role' => 'child_user',
-      'meta_key' => 'assigned_parent_id',
-      'meta_value' => $parent_id,
-  ));
+  // Fetch children based on user role
+  if ($is_parent) {
+      // For parents: fetch their assigned children
+      $children = get_users(array(
+          'role' => 'child_user',
+          'meta_key' => 'assigned_parent_id',
+          'meta_value' => $user_id,
+      ));
+  } else {
+      // For mentors: fetch children assigned to this mentor
+      $children = get_users(array(
+          'role' => 'child_user',
+          'meta_key' => 'assigned_mentor_id',
+          'meta_value' => $user_id,
+      ));
+  }
   ?>
   <div class="row mb-4">
     <div class="col-12">
-      <h2 class="mb-1">Book a Session for Your Child</h2>
-      <p class="text-muted">Select a child, mentor, session, and date/time to book.</p>
+      <h2 class="mb-1">Book a Session <?php echo $is_mentor ? 'for Your Student' : 'for Your Child'; ?></h2>
+      <p class="text-muted">Select a child, session, and date/time to book.</p>
     </div>
   </div>
 
   <div class="row g-4">
     <div class="col-12">
       <form id="bookSessionForm" method="post">
+        <input type="hidden" id="userRole" value="<?php echo $is_mentor ? 'mentor' : 'parent'; ?>">
+        <input type="hidden" id="currentUserId" value="<?php echo $user_id; ?>">
+        
         <div class="mb-3">
           <label for="childSelect" class="form-label">Select Child</label>
           <select class="form-select" id="childSelect" name="childSelect" required>
@@ -78,16 +95,18 @@ get_header();
           </select>
         </div>
 
+        <?php if ($is_parent) : ?>
         <div class="mb-3">
           <label for="mentorSelect" class="form-label">Select Mentor</label>
           <select class="form-select" id="mentorSelect" name="mentorSelect" required disabled>
             <option value="">Select a child first</option>
           </select>
         </div>
+        <?php endif; ?>
 
         <div class="mb-3">
           <label for="sessionProduct" class="form-label">Select Session</label>
-          <select class="form-select" id="sessionProduct" name="sessionProduct" required disabled>
+          <select class="form-select" id="sessionProduct" name="sessionProduct" required <?php echo $is_mentor ? '' : 'disabled'; ?>>
             <option value="">Select a session</option>
             <?php foreach ($products as $product) : ?>
               <option value="<?php echo esc_attr($product->ID); ?>"><?php echo esc_html($product->post_title); ?> - $<?php echo get_post_meta($product->ID, '_price', true); ?></option>
@@ -129,6 +148,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let mentorHours = {};
     let bookedSlots = {}; // Initialize as an object
 
+    const userRole = document.getElementById('userRole').value;
+    const currentUserId = document.getElementById('currentUserId').value;
     const childSelect = document.getElementById('childSelect');
     const mentorSelect = document.getElementById('mentorSelect');
     const sessionProduct = document.getElementById('sessionProduct');
@@ -150,6 +171,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedDate = null;
     const now = new Date();
 
+    // For mentors, set themselves as the mentor
+    if (userRole === 'mentor') {
+        currentMentorId = currentUserId;
+        // Fetch mentor's working hours
+        fetchMentorWorkingHours(currentMentorId);
+    }
+
     // Populate month and year dropdowns
     function populateMonthYear() {
         monthSelect.innerHTML = months.map((m, i) => `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${m}</option>`).join("");
@@ -158,6 +186,35 @@ document.addEventListener('DOMContentLoaded', function() {
             years += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
         }
         yearSelect.innerHTML = years;
+    }
+
+    // Fetch mentor working hours
+    function fetchMentorWorkingHours(mentorId) {
+        fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                action: 'get_mentor_working_hours',
+                mentor_id: mentorId,
+                nonce: '<?php echo wp_create_nonce('mentor_dashboard_nonce'); ?>'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.working_hours) {
+                mentorHours[mentorId] = {};
+                for (let day in data.data.working_hours) {
+                    const parsedData = data.data.working_hours[day] ? JSON.parse(data.data.working_hours[day]) : { off: true, slots: [] };
+                    mentorHours[mentorId][day.toLowerCase()] = parsedData;
+                }
+                fetchBookedSlots(mentorId, currentYear, currentMonth + 1);
+            }
+        })
+        .catch(error => {
+            showNotification('Failed to load mentor working hours: ' + error.message, 'danger');
+        });
     }
 
     // Get max slots based on multiple time ranges
@@ -350,82 +407,101 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Update mentor dropdown based on child selection
-    childSelect.addEventListener('change', function() {
-        const childId = this.value;
-        mentorSelect.innerHTML = '<option value="">Loading mentors...</option>';
-        mentorSelect.disabled = true;
-        sessionProduct.disabled = true;
-        selectedSlot.disabled = true;
-        submitButton.disabled = true;
-        currentMentorId = null;
-        mentorHours = {};
-        bookedSlots = {};
-        timeSlotsContainer.innerHTML = ''; // Clear time slots
-        selectedDate = null; // Reset selected date
-        selectedDateText.textContent = ''; // Clear selected date text
+    if (userRole === 'parent') {
+        childSelect.addEventListener('change', function() {
+            const childId = this.value;
+            mentorSelect.innerHTML = '<option value="">Loading mentors...</option>';
+            mentorSelect.disabled = true;
+            sessionProduct.disabled = true;
+            selectedSlot.disabled = true;
+            submitButton.disabled = true;
+            currentMentorId = null;
+            mentorHours = {};
+            bookedSlots = {};
+            timeSlotsContainer.innerHTML = ''; // Clear time slots
+            selectedDate = null; // Reset selected date
+            selectedDateText.textContent = ''; // Clear selected date text
 
-        if (!childId) {
-            mentorSelect.innerHTML = '<option value="">Select a child first</option>';
-            calendarDays.innerHTML = '<div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div><div class="day">Sun</div>';
-            return;
-        }
+            if (!childId) {
+                mentorSelect.innerHTML = '<option value="">Select a child first</option>';
+                calendarDays.innerHTML = '<div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div><div class="day">Sun</div>';
+                return;
+            }
 
-        fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                action: 'get_assigned_mentor',
-                child_id: childId,
-                nonce: '<?php echo wp_create_nonce('get_assigned_mentor_nonce'); ?>'
+            fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    action: 'get_assigned_mentor',
+                    child_id: childId,
+                    nonce: '<?php echo wp_create_nonce('get_assigned_mentor_nonce'); ?>'
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            mentorSelect.innerHTML = '<option value="">Select a mentor</option>';
-            if (data.success && data.data.mentor) {
-                const mentor = data.data.mentor;
-                mentorSelect.innerHTML = `<option value="${mentor.id}">${mentor.name}</option>`;
-                mentorSelect.disabled = false;
-                sessionProduct.disabled = false;
-                selectedSlot.disabled = false;
-                currentMentorId = mentor.id;
-                mentorHours[currentMentorId] = {};
-                for (let day in data.data.working_hours) {
-                    const parsedData = data.data.working_hours[day] ? JSON.parse(data.data.working_hours[day]) : { off: true, slots: [] };
-                    mentorHours[currentMentorId][day.toLowerCase()] = parsedData;
+            .then(response => response.json())
+            .then(data => {
+                mentorSelect.innerHTML = '<option value="">Select a mentor</option>';
+                if (data.success && data.data.mentor) {
+                    const mentor = data.data.mentor;
+                    mentorSelect.innerHTML = `<option value="${mentor.id}">${mentor.name}</option>`;
+                    mentorSelect.disabled = false;
+                    sessionProduct.disabled = false;
+                    selectedSlot.disabled = false;
+                    currentMentorId = mentor.id;
+                    mentorHours[currentMentorId] = {};
+                    for (let day in data.data.working_hours) {
+                        const parsedData = data.data.working_hours[day] ? JSON.parse(data.data.working_hours[day]) : { off: true, slots: [] };
+                        mentorHours[currentMentorId][day.toLowerCase()] = parsedData;
+                    }
+                    fetchBookedSlots(currentMentorId, currentYear, currentMonth + 1);
+                } else {
+                    mentorSelect.innerHTML = '<option value="">No mentor assigned</option>';
+                    mentorSelect.disabled = true;
+                    calendarDays.innerHTML = '<div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div><div class="day">Sun</div>';
+                    timeSlotsContainer.innerHTML = '';
                 }
+            })
+            .catch(error => {
+                mentorSelect.innerHTML = '<option value="">Error loading mentors</option>';
+                showNotification('Failed to load mentor: ' + error.message, 'danger');
+            });
+        });
+
+        // Update calendar when mentor changes
+        mentorSelect.addEventListener('change', function() {
+            currentMentorId = this.value;
+            sessionProduct.disabled = !currentMentorId;
+            selectedSlot.disabled = !currentMentorId;
+            submitButton.disabled = true;
+            selectedSlot.value = '';
+            timeSlotsContainer.innerHTML = '';
+            selectedDate = null; // Reset selected date
+            selectedDateText.textContent = ''; // Clear selected date text
+            if (currentMentorId) {
                 fetchBookedSlots(currentMentorId, currentYear, currentMonth + 1);
             } else {
-                mentorSelect.innerHTML = '<option value="">No mentor assigned</option>';
-                mentorSelect.disabled = true;
                 calendarDays.innerHTML = '<div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div><div class="day">Sun</div>';
-                timeSlotsContainer.innerHTML = '';
             }
-        })
-        .catch(error => {
-            mentorSelect.innerHTML = '<option value="">Error loading mentors</option>';
-            showNotification('Failed to load mentor: ' + error.message, 'danger');
         });
-    });
-
-    // Update calendar when mentor changes
-    mentorSelect.addEventListener('change', function() {
-        currentMentorId = this.value;
-        sessionProduct.disabled = !currentMentorId;
-        selectedSlot.disabled = !currentMentorId;
-        submitButton.disabled = true;
-        selectedSlot.value = '';
-        timeSlotsContainer.innerHTML = '';
-        selectedDate = null; // Reset selected date
-        selectedDateText.textContent = ''; // Clear selected date text
-        if (currentMentorId) {
-            fetchBookedSlots(currentMentorId, currentYear, currentMonth + 1);
-        } else {
-            calendarDays.innerHTML = '<div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div><div class="day">Sun</div>';
-        }
-    });
+    } else {
+        // For mentors, just enable calendar when child is selected
+        childSelect.addEventListener('change', function() {
+            const childId = this.value;
+            if (childId && currentMentorId) {
+                selectedSlot.disabled = false;
+                fetchBookedSlots(currentMentorId, currentYear, currentMonth + 1);
+            } else {
+                selectedSlot.disabled = true;
+                submitButton.disabled = true;
+                selectedSlot.value = '';
+                timeSlotsContainer.innerHTML = '';
+                selectedDate = null;
+                selectedDateText.textContent = '';
+                calendarDays.innerHTML = '<div class="day">Mon</div><div class="day">Tue</div><div class="day">Wed</div><div class="day">Thu</div><div class="day">Fri</div><div class="day">Sat</div><div class="day">Sun</div>';
+            }
+        });
+    }
 
     // Handle month/year changes
     monthSelect.addEventListener("change", () => {
@@ -452,6 +528,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         formData.append('action', 'add_session_to_cart');
         formData.append('nonce', '<?php echo wp_create_nonce('mentor_dashboard_nonce'); ?>');
+        
+        // For mentors, add their ID as the mentor
+        if (userRole === 'mentor') {
+            formData.append('mentorSelect', currentUserId);
+        }
 
         fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
             method: 'POST',

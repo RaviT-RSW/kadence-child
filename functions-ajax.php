@@ -29,7 +29,51 @@ function handle_cancel_session() {
     wp_die();
 }
 
+/**
+ * Handles AJAX request to get mentor working hours.
+ *
+ * @since 1.0.0
+ *
+ * @param int $mentor_id Mentor ID
+ */
+function handle_get_mentor_working_hours() {
+    check_ajax_referer('mentor_dashboard_nonce', 'nonce');
 
+    $mentor_id = isset($_POST['mentor_id']) ? intval($_POST['mentor_id']) : 0;
+    if (!$mentor_id) {
+        wp_send_json_error(['message' => 'Invalid mentor ID']);
+        wp_die();
+    }
+
+    // Verify mentor exists and has mentor_user role
+    $mentor = get_user_by('id', $mentor_id);
+    if (!$mentor || !in_array('mentor_user', (array)$mentor->roles)) {
+        wp_send_json_error(['message' => 'Mentor not found or invalid']);
+        wp_die();
+    }
+
+    // Fetch mentor working hours
+    global $wpdb;
+    $hours = $wpdb->get_row(
+        $wpdb->prepare("SELECT * FROM {$wpdb->prefix}mentor_working_hours WHERE mentor_id = %d", $mentor_id)
+    );
+
+    $working_hours = $hours ? [
+        'monday' => $hours->monday,
+        'tuesday' => $hours->tuesday,
+        'wednesday' => $hours->wednesday,
+        'thursday' => $hours->thursday,
+        'friday' => $hours->friday,
+        'saturday' => $hours->saturday,
+        'sunday' => $hours->sunday,
+    ] : [];
+
+    wp_send_json_success([
+        'working_hours' => $working_hours
+    ]);
+    wp_die();
+}
+add_action('wp_ajax_get_mentor_working_hours', 'handle_get_mentor_working_hours');
 
 
 // Add AJAX action for canceling a session

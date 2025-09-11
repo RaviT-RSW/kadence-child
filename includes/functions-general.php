@@ -25,9 +25,9 @@ function add_logout_link_to_menu($items, $args) {
         if ( in_array('mentor_user', (array)$current_user->roles) ){
             $items .= '<li class="menu-item"><a href="' . home_url('/working-hours/') . '"> Working Hours </a></li>';
         }
-        if ( in_array('parent_user', (array)$current_user->roles) ){
+        if ( in_array('parent_user', (array)$current_user->roles) || in_array('mentor_user', (array)$current_user->roles) ){
             $items .= '<li class="menu-item"><a href="' . home_url('/book-session/') . '"> Book Session </a></li>';
-        }   
+        }  
     }
     if (is_user_logged_in() && $args->theme_location === 'primary') {
         $items .= '<li class="menu-item"><a href="' . wp_logout_url(home_url()) . '"> Logout </a></li>';
