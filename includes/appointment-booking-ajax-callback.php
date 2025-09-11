@@ -23,10 +23,14 @@ function get_mentor_booked_slots() {
 
     $results = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT session_meta.meta_value AS session_date_time 
+            "SELECT session_meta.meta_value AS session_date_time,
+                    status_meta.meta_value AS appointment_status
              FROM {$wpdb->prefix}woocommerce_order_itemmeta AS session_meta
              INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS mentor_meta
                  ON session_meta.order_item_id = mentor_meta.order_item_id
+             LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS status_meta
+                 ON session_meta.order_item_id = status_meta.order_item_id
+                 AND status_meta.meta_key = 'appointment_status'
              WHERE session_meta.meta_key = 'session_date_time'
                AND mentor_meta.meta_key = 'mentor_id'
                AND mentor_meta.meta_value = %d
@@ -39,9 +43,15 @@ function get_mentor_booked_slots() {
 
     $booked_slots = [];
     foreach ($results as $row) {
-        $date = date('Y-m-d', strtotime($row->session_date_time));
-        $start_time = date('H:i', strtotime($row->session_date_time));
-        $booked_slots[$date][] = $start_time;
+        $appointment_status = strtolower($row->appointment_status ?: 'pending');
+        
+        // Only include approved or pending sessions as booked slots
+        // Skip cancelled sessions so they become available again
+        if (in_array($appointment_status, ['approved', 'pending'])) {
+            $date = date('Y-m-d', strtotime($row->session_date_time));
+            $start_time = date('H:i', strtotime($row->session_date_time));
+            $booked_slots[$date][] = $start_time;
+        }
     }
 
     wp_send_json_success(['booked_slots' => $booked_slots]);

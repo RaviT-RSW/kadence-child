@@ -74,7 +74,7 @@ get_header();
   ?>
   <div class="row mb-4">
     <div class="col-12">
-      <h2 class="mb-1">Book a Session <?php echo $is_mentor ? 'for Your Student' : 'for Your Child'; ?></h2>
+      <h2 class="mb-1">Book a Session for Your Child</h2>
       <p class="text-muted">Select a child, session, and date/time to book.</p>
     </div>
   </div>
