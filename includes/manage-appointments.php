@@ -386,7 +386,7 @@ function render_manage_appointments_page() {
                         <div class="form-group">
                             <label for="session_product">Select Session *</label>
                             <select id="session_product" name="session_product" required disabled>
-                                <option value="">-- Select Child First --</option>
+                                <option value="">-- Select Session First --</option>
                                 <?php foreach ($products as $product) : ?>
                                     <option value="<?php echo esc_attr($product->ID); ?>">
                                         <?php echo esc_html($product->post_title . ' - $' . get_post_meta($product->ID, '_price', true)); ?>
