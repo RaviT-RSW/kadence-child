@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .content { margin: 20px 0; }
+        .payment-section { background: #f0f8ff; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .payment-link { display: inline-block; background: #0073aa; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{site_name} Monthly Invoice</h1>
+            <p>{month_name} {year}</p>
+        </div>
+        
+        <div class="content">
+            <p>Dear {parent_name},</p>
+            <p>We hope this email finds you well.</p>
+            <p>Please find attached your monthly invoice for {month_name} {year}.</p>
+            {payment_section}
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing {site_name} for your child's educational journey.</p>
+            <p><strong>The {site_name} Team</strong><br>
+            Email: support@urmentor.com<br>
+            Website: {site_url}</p>
+        </div>
+    </div>
+</body>
+</html>

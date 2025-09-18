@@ -210,3 +210,17 @@ function handle_update_profile() {
     }
     wp_send_json_error();
 }
+
+add_action('woocommerce_thankyou', function($order_id) {
+    $order = wc_get_order($order_id);
+
+    if ($order && $order->get_meta('_is_booking_order') === 'yes') {
+        $order->save();
+    }
+}, 10, 1);
+
+add_filter( 'woocommerce_cod_process_payment_order_status', 'set_cod_order_status_pending' );
+
+function set_cod_order_status_pending( $order_status ) {
+    return 'pending';
+}
