@@ -540,6 +540,10 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('mentorSelect', currentUserId);
         }
 
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.textContent = 'Booking...';
+
         fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
             method: 'POST',
             body: formData
@@ -547,12 +551,23 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                window.location.href = '<?php echo wc_get_checkout_url(); ?>';
+                // Check if it's a direct order (mentor) or needs checkout (parent)
+                if (data.data.is_direct_order) {
+                    // Mentor: Redirect directly to thank you page
+                    window.location.href = data.data.redirect_url;
+                } else {
+                    // Parent: Redirect to checkout page
+                    window.location.href = data.data.redirect_url;
+                }
             } else {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Book Session';
                 showNotification('Failed to book session: ' + (data.data?.message || 'Unknown error'), 'danger');
             }
         })
         .catch(error => {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Book Session';
             showNotification('An error occurred. Please try again.', 'danger');
         });
     });

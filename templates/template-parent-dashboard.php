@@ -76,37 +76,63 @@ get_header();
             <div class="card-body">
               <h4 class="card-title mb-3 fw-bold text-primary">Next Session</h4>
               <?php
-              $parent_id = $current_user->ID;
-              $args = array('customer_id' => $parent_id);
-              $orders = wc_get_orders($args);
+              // Get all child IDs for the parent
+              $child_ids = array_map(function($child) { return $child->ID; }, $children);
+
               $sessions = array();
-              foreach ($orders as $order) {
-                  foreach ($order->get_items() as $item_id => $item) {
-                      $mentor_id = $item->get_meta('mentor_id');
-                      $child_id = $item->get_meta('child_id');
-                      $session_date_time = $item->get_meta('session_date_time');
-                      $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
-                      $location = $item->get_meta('location') ?: 'online';
-                      $zoom_meeting = $item->get_meta('zoom_meeting') ?: '';
-                      $zoom_link = '';
-                      if ($location == 'online' && !empty($zoom_meeting) && class_exists('Zoom')) {
-                          $zoom = new Zoom();
-                          $zoom_link = $zoom->getMeetingUrl($zoom_meeting, 'start_url');
-                      }
-                      if ($mentor_id && $child_id && $session_date_time) {
-                          $mentor = get_user_by('id', $mentor_id);
-                          $child = get_user_by('id', $child_id);
-                          $sessions[] = array(
-                              'date_time' => new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata')),
-                              'mentor_name' => $mentor ? $mentor->display_name : 'Unknown Mentor',
-                              'mentor_id' => $mentor_id,
-                              'child_name' => $child ? $child->display_name : 'Unknown Child',
-                              'child_id' => $child_id,
-                              'appointment_status' => $appointment_status,
-                              'order_id' => $order->get_id(),
-                              'item_id' => $item_id,
-                              'zoom_link' => $zoom_link,
-                          );
+              if (!empty($child_ids)) {
+                  $placeholders = implode(',', array_fill(0, count($child_ids), '%d'));
+                  $query = "SELECT DISTINCT oi.order_id 
+                            FROM {$wpdb->prefix}woocommerce_order_items oi
+                            INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta oim ON oi.order_item_id = oim.order_item_id
+                            INNER JOIN {$wpdb->prefix}wc_orders_meta om ON oi.order_id = om.order_id
+                            WHERE oim.meta_key = 'child_id' AND oim.meta_value IN ($placeholders)
+                            AND oi.order_item_type = 'line_item'
+                            AND NOT EXISTS (
+                                SELECT 1 
+                                FROM {$wpdb->prefix}wc_orders_meta om2 
+                                WHERE om2.order_id = oi.order_id 
+                                AND om2.meta_key = 'is_monthly_invoice' 
+                                AND om2.meta_value = '1'
+                            )";
+                  $order_ids = $wpdb->get_col($wpdb->prepare($query, $child_ids));
+
+                  if (!empty($order_ids)) {
+                      $orders = wc_get_orders(array(
+                          'post__in' => $order_ids,
+                          'orderby' => 'date',
+                          'order' => 'DESC',
+                      ));
+
+                      foreach ($orders as $order) {
+                          foreach ($order->get_items() as $item_id => $item) {
+                              $mentor_id = $item->get_meta('mentor_id');
+                              $child_id = $item->get_meta('child_id');
+                              $session_date_time = $item->get_meta('session_date_time');
+                              $appointment_status = $item->get_meta('appointment_status') ?: 'N/A';
+                              $location = $item->get_meta('location') ?: 'online';
+                              $zoom_meeting = $item->get_meta('zoom_meeting') ?: '';
+                              $zoom_link = '';
+                              if ($location == 'online' && !empty($zoom_meeting) && class_exists('Zoom')) {
+                                  $zoom = new Zoom();
+                                  $zoom_link = $zoom->getMeetingUrl($zoom_meeting, 'start_url');
+                              }
+                              if ($mentor_id && $child_id && $session_date_time && in_array($child_id, $child_ids)) {
+                                  $mentor = get_user_by('id', $mentor_id);
+                                  $child = get_user_by('id', $child_id);
+                                  $sessions[] = array(
+                                      'date_time' => new DateTime($session_date_time, new DateTimeZone('Asia/Kolkata')),
+                                      'mentor_name' => $mentor ? $mentor->display_name : 'Unknown Mentor',
+                                      'mentor_id' => $mentor_id,
+                                      'child_name' => $child ? $child->display_name : 'Unknown Child',
+                                      'child_id' => $child_id,
+                                      'appointment_status' => $appointment_status,
+                                      'order_id' => $order->get_id(),
+                                      'item_id' => $item_id,
+                                      'zoom_link' => $zoom_link,
+                                  );
+                              }
+                          }
                       }
                   }
               }

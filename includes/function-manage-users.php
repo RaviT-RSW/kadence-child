@@ -448,8 +448,21 @@ function urmentor_get_mentor_sessions($mentor_id) {
 
     // Fetch all WooCommerce orders with status 'completed', 'processing', or 'on-hold'
     $args = array(
-        'status' => array('wc-completed', 'wc-processing', 'wc-on-hold'),
-        'limit' => -1, // Retrieve all orders
+        'mentor_id' => $mentor_id,
+        'limit' => -1,
+        'status' => array('wc-pending', 'wc-processing', 'wc-on-hold', 'wc-completed'), // Include pending payment statuses
+        'meta_query' => array(
+            'relation' => 'OR',
+            array(
+                'key' => 'is_monthly_invoice',
+                'value' => '1',
+                'compare' => '!=', // Exclude orders where is_monthly_invoice is 1
+            ),
+            array(
+                'key' => 'is_monthly_invoice',
+                'compare' => 'NOT EXISTS', // Include orders where is_monthly_invoice is not set
+            ),
+        ),
     );
     $orders = wc_get_orders($args);
 

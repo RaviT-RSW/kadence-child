@@ -28,10 +28,23 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
 
   <?php
   $sessions = array();
-  if ($parent_id) {
+  if ($current_child_id) {
       $args = array(
-          'customer_id' => $parent_id,
+          'child_id' => $current_child_id,
           'limit' => -1,
+          'status' => array('wc-pending', 'wc-processing', 'wc-on-hold', 'wc-completed'), // Include pending payment statuses
+          'meta_query' => array(
+              'relation' => 'OR',
+              array(
+                  'key' => 'is_monthly_invoice',
+                  'value' => '1',
+                  'compare' => '!=', // Exclude orders where is_monthly_invoice is 1
+              ),
+              array(
+                  'key' => 'is_monthly_invoice',
+                  'compare' => 'NOT EXISTS', // Include orders where is_monthly_invoice is not set
+              ),
+          ),
       );
       $orders = wc_get_orders($args);
       foreach ($orders as $order) {
@@ -76,7 +89,8 @@ $parent_id = get_user_meta($current_child_id, 'assigned_parent_id', true);
     'pending'   => 'bg-warning text-dark',
     'cancelled' => 'bg-danger text-white',
     'upcoming'  => 'bg-info text-dark',
-    'completed' => 'bg-secondary text-white'
+    'completed' => 'bg-secondary text-white',
+    'scheduled' => 'bg-info text-dark' // Added for 'Scheduled' status
   ];
 
   ?>

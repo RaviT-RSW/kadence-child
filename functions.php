@@ -50,7 +50,19 @@ function enqueue_mentor_dashboard_scripts() {
     $sessions = array();
     $all_orders = wc_get_orders(array(
         'limit' => -1,
-        'status' => array('wc-processing', 'wc-on-hold', 'wc-completed'),
+        'status' => array('wc-processing', 'wc-on-hold', 'wc-completed', 'wc-pending'),
+        'meta_query' => array(
+            'relation' => 'OR',
+            array(
+                'key' => 'is_monthly_invoice',
+                'value' => '1',
+                'compare' => '!=', // Orders where is_monthly_invoice is not 1
+            ),
+            array(
+                'key' => 'is_monthly_invoice',
+                'compare' => 'NOT EXISTS', // Orders where is_monthly_invoice is not set
+            ),
+        ),
     ));
 
     foreach ($all_orders as $order) {

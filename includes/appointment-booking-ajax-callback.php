@@ -77,6 +77,11 @@ function handle_add_session_to_cart() {
         return;
     }
 
+    // Get current user and check role
+    $current_user = wp_get_current_user();
+    $user_roles = (array)$current_user->roles;
+    $is_mentor = in_array('mentor_user', $user_roles);
+    
     // Validate slot availability
     $start_datetime = new DateTime($session_date_time, new DateTimeZone(wp_timezone_string()));
     $end_datetime = clone $start_datetime;
@@ -85,20 +90,20 @@ function handle_add_session_to_cart() {
     global $wpdb;
     $overlap_check = $wpdb->get_var(
         $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_order_itemmeta 
-             WHERE order_item_id IN (
-                 SELECT order_item_id FROM {$wpdb->prefix}woocommerce_order_items 
-                 WHERE order_id IN (
-                     SELECT post_id FROM {$wpdb->prefix}postmeta 
-                     WHERE meta_key = 'mentor_id' AND meta_value = %d
-                 )
-             ) AND meta_key = 'session_date_time' 
-             AND meta_value BETWEEN %s AND %s 
-             AND meta_value != %s",
+            "SELECT COUNT(*) FROM {$wpdb->prefix}woocommerce_order_itemmeta AS session_meta
+             INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS mentor_meta
+                 ON session_meta.order_item_id = mentor_meta.order_item_id
+             LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS status_meta
+                 ON session_meta.order_item_id = status_meta.order_item_id
+                 AND status_meta.meta_key = 'appointment_status'
+             WHERE session_meta.meta_key = 'session_date_time'
+               AND mentor_meta.meta_key = 'mentor_id'
+               AND mentor_meta.meta_value = %d
+               AND session_meta.meta_value BETWEEN %s AND %s
+               AND (status_meta.meta_value IS NULL OR status_meta.meta_value NOT IN ('cancelled'))",
             $mentor_id,
             $start_datetime->format('Y-m-d H:i:s'),
-            $end_datetime->format('Y-m-d H:i:s'),
-            $session_date_time
+            $end_datetime->format('Y-m-d H:i:s')
         )
     );
 
@@ -107,19 +112,106 @@ function handle_add_session_to_cart() {
         return;
     }
 
-    // Add product to cart with meta data
-    $cart_item_key = WC()->cart->add_to_cart($session_product_id, 1, 0, array(), array(
-        'mentor_id' => $mentor_id,
-        'child_id' => $child_id,
-        'session_date_time' => $session_date_time,
-        'appointment_status' => $appointment_status,
-        'appointment_duration' => 60
-    ));
+    // Handle differently based on user role
+    if ($is_mentor) {
+        // For mentors: Create order directly (no checkout)
+        try {
+            $product = wc_get_product($session_product_id);
+            
+            if (!$product) {
+                wp_send_json_error(['message' => 'Invalid product selected.']);
+                return;
+            }
 
-    if ($cart_item_key) {
-        wp_send_json_success(['success' => true]);
+            // Create new order
+            $order = wc_create_order();
+            
+            // Add product to order
+            $item_id = $order->add_product($product, 1);
+            
+            if (!$item_id) {
+                wp_send_json_error(['message' => 'Failed to add product to order.']);
+                return;
+            }
+            
+            // Get the order item object
+            $item = $order->get_item($item_id);
+            
+            if (!$item) {
+                wp_send_json_error(['message' => 'Failed to retrieve order item.']);
+                return;
+            }
+            
+            // Add custom meta data to order item
+            $item->update_meta_data('mentor_id', $mentor_id);
+            $item->update_meta_data('child_id', $child_id);
+            $item->update_meta_data('session_date_time', $session_date_time);
+            $item->update_meta_data('appointment_status', $appointment_status);
+            $item->update_meta_data('appointment_duration', 60);
+            $item->save();
+            
+            // Set billing information
+            $order->set_billing_first_name($current_user->first_name ?: 'User');
+            $order->set_billing_last_name($current_user->last_name ?: 'Name');
+            $order->set_billing_email($current_user->user_email);
+            $order->set_status('pending');
+            
+            // Calculate totals
+            $order->calculate_totals();
+            
+            // Save the order
+            $order->save();
+            
+            // Clear any existing cart items to avoid conflicts
+            WC()->cart->empty_cart();
+            
+            // Add record to assigned_mentees table
+            $wpdb->insert(
+                $wpdb->prefix . 'assigned_mentees',
+                array(
+                    'mentor_id' => $mentor_id,
+                    'child_id' => $child_id,
+                    'order_id' => $order->get_id(),
+                    'appointment_date_time' => $session_date_time,
+                ),
+                array('%d', '%d', '%d', '%s')
+            );
+
+            if ($wpdb->last_error) {
+                error_log('Failed to insert record into wp_assigned_mentees: ' . $wpdb->last_error);
+            }
+
+            // Return success with order ID for redirect to thank you page
+            wp_send_json_success([
+                'success' => true, 
+                'order_id' => $order->get_id(),
+                'redirect_url' => $order->get_checkout_order_received_url(),
+                'is_direct_order' => true
+            ]);
+
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => 'Failed to create order: ' . $e->getMessage()]);
+        }
+        
     } else {
-        wp_send_json_error(['message' => 'Failed to add session to cart.']);
+        // For parents: Use original cart method (with checkout)
+        $cart_item_key = WC()->cart->add_to_cart($session_product_id, 1, 0, array(), array(
+            'mentor_id' => $mentor_id,
+            'child_id' => $child_id,
+            'session_date_time' => $session_date_time,
+            'appointment_status' => $appointment_status,
+            'appointment_duration' => 60
+        ));
+
+        if ($cart_item_key) {
+            wp_send_json_success([
+                'success' => true,
+                'redirect_url' => wc_get_checkout_url(),
+                'is_direct_order' => false
+            ]);
+        } else {
+            wp_send_json_error(['message' => 'Failed to add session to cart.']);
+        }
     }
 }
 add_action('wp_ajax_add_session_to_cart', 'handle_add_session_to_cart');
