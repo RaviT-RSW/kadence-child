@@ -258,6 +258,11 @@ function render_manage_appointments_page() {
     $filtered_orders = array();
     foreach ($all_orders as $order_id) {
         $order = wc_get_order($order_id);
+        // Skip if this is a master invoice order
+        if ($order->get_meta('is_monthly_invoice', true)) {
+            continue;
+        }
+
         foreach ($order->get_items() as $item_id => $item) {
             $session_date_time   = $item->get_meta('session_date_time');
             $appointment_status  = $item->get_meta('appointment_status') ?: 'N/A';

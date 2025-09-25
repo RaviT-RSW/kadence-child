@@ -145,6 +145,9 @@ require_once get_stylesheet_directory() . '/includes/functions-cronjob.php';
 require_once get_stylesheet_directory() . '/includes/shortcodes.php';
 require_once get_stylesheet_directory() . '/includes/functions-sql.php';
 require_once get_stylesheet_directory() . '/includes/function-manage-users.php';
+require_once get_stylesheet_directory() . '/includes/function-invoice.php';
+require_once get_stylesheet_directory() . '/includes/function-mentor-invoice.php';
+require_once get_stylesheet_directory() . '/includes/function-mentors-overview.php';
 require_once get_stylesheet_directory() . '/includes/appointment-booking-ajax-callback.php';
 
 require_once get_stylesheet_directory() . '/includes/class.zoom.php';
