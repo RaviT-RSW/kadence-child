@@ -228,13 +228,24 @@ function urmentor_mentor_invoices_page() {
     $selected_month = isset($_GET['invoice_month']) ? intval($_GET['invoice_month']) : $current_month;
     $selected_mentor_id = isset($_GET['mentor_id']) ? intval($_GET['mentor_id']) : (!empty($mentors) ? $mentors[0]->ID : 0);
 
+    // Check if we need to auto-generate invoice (when URL parameters are present and no form submission)
+    $auto_generate = false;
+    if (isset($_GET['mentor_id']) && isset($_GET['invoice_year']) && isset($_GET['invoice_month']) && 
+        !isset($_POST['generate_invoice']) && !isset($_POST['download_invoice']) && !isset($_POST['send_invoice'])) {
+        $auto_generate = true;
+    }
+
     ob_start(); // Start output buffering
 
-    // Handle form submission for generating invoice
-    if (isset($_POST['generate_invoice']) && wp_verify_nonce($_POST['invoice_nonce'], 'generate_invoice')) {
-        $selected_year = intval($_POST['invoice_year']);
-        $selected_month = intval($_POST['invoice_month']);
-        $selected_mentor_id = intval($_POST['mentor_id']);
+    // Handle form submission for generating invoice 
+    if ((isset($_POST['generate_invoice']) && wp_verify_nonce($_POST['invoice_nonce'], 'generate_invoice')) || $auto_generate) {
+        
+        // If auto-generating, use URL parameters; otherwise use POST data
+        if (!$auto_generate) {
+            $selected_year = intval($_POST['invoice_year']);
+            $selected_month = intval($_POST['invoice_month']);
+            $selected_mentor_id = intval($_POST['mentor_id']);
+        }
 
         $appointments_data = urmentor_get_mentor_monthly_appointments($selected_mentor_id, $selected_year, $selected_month);
 

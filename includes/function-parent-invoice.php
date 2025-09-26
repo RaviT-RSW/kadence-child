@@ -206,13 +206,24 @@ function urmentor_monthly_invoices_page() {
     $selected_parent_id = isset($_GET['parent_id']) ? intval($_GET['parent_id']) : (!empty($parents) ? $parents[0]->ID : 0);
     $master_order_id = null; // Store master order ID for email
 
+    // Check if we need to auto-generate invoice (when URL parameters are present and no form submission)
+    $auto_generate = false;
+    if (isset($_GET['parent_id']) && isset($_GET['invoice_year']) && isset($_GET['invoice_month']) && 
+        !isset($_POST['generate_invoice']) && !isset($_POST['download_invoice']) && !isset($_POST['send_invoice'])) {
+        $auto_generate = true;
+    }
+
     ob_start(); // Start output buffering
 
     // Handle form submission for generating invoice
-    if (isset($_POST['generate_invoice']) && wp_verify_nonce($_POST['invoice_nonce'], 'generate_invoice')) {
-        $selected_year = intval($_POST['invoice_year']);
-        $selected_month = intval($_POST['invoice_month']);
-        $selected_parent_id = intval($_POST['parent_id']);
+    if ((isset($_POST['generate_invoice']) && wp_verify_nonce($_POST['invoice_nonce'], 'generate_invoice')) || $auto_generate) {
+        
+        // If auto-generating, use URL parameters; otherwise use POST data
+        if (!$auto_generate) {
+            $selected_year = intval($_POST['invoice_year']);
+            $selected_month = intval($_POST['invoice_month']);
+            $selected_parent_id = intval($_POST['parent_id']);
+        }
         
         $children = get_users(array(
             'role' => 'child_user',
@@ -236,14 +247,16 @@ function urmentor_monthly_invoices_page() {
                 
                 if ($existing_order) {
                     $master_order_id = urmentor_update_master_order($existing_order, $selected_parent_id, $selected_year, $selected_month, $appointments);
-                    $message = '<div class="notice notice-success is-dismissible"><p>Master order updated successfully! Order ID: ' . $master_order_id . '</p></div>';
+                    $action_type = $auto_generate ? 'loaded and updated' : 'updated';
+                    $message = '<div class="notice notice-success is-dismissible"><p>Master order ' . $action_type . ' successfully! Order ID: ' . $master_order_id . '</p></div>';
                 } else {
                     $master_order_id = urmentor_create_master_order($selected_parent_id, $selected_year, $selected_month, $appointments);
                     if (is_wp_error($master_order_id)) {
                         $message = '<div class="notice notice-error is-dismissible"><p>Error creating master order: ' . $master_order_id->get_error_message() . '</p></div>';
                         $master_order_id = null;
                     } else {
-                        $message = '<div class="notice notice-success is-dismissible"><p>Master order created successfully! Order ID: ' . $master_order_id . '</p></div>';
+                        $action_type = $auto_generate ? 'loaded and created' : 'created';
+                        $message = '<div class="notice notice-success is-dismissible"><p>Master order ' . $action_type . ' successfully! Order ID: ' . $master_order_id . '</p></div>';
                     }
                 }
 
