@@ -638,7 +638,7 @@ function urmentor_generate_pdf_html($parent_id, $year, $month, $appointments_dat
         <table class="header-table">
             <tr>
                 <td class="logo-cell">
-                    <img src="http://localhost/urmentor-pwa/wp-content/uploads/2025/08/URMENTOR-WP-LOGO-1.png" alt="UrMentor Logo" />
+                    <img src="https://rainflowweb.com/demo/urmentor-pwa/wp-content/uploads/2025/08/URMENTOR-WP-LOGO-1.png" alt="UrMentor Logo" />
                 </td>
                 <td class="details-cell">
                     <strong>Parent:</strong> ' . esc_html($parent->display_name . ' (' . $parent->user_email . ')') . '<br/>
@@ -969,7 +969,7 @@ function urmentor_generate_invoice_html($parent_id, $year, $month, $appointments
         <div class="invoice-header">
             <div class="logo-section">
                 <div class="logo-placeholder">
-                    <img src="http://localhost/urmentor-pwa/wp-content/uploads/2025/08/URMENTOR-WP-LOGO-1.png" alt="UR Mentor Logo" />
+                    <img src="https://rainflowweb.com/demo/urmentor-pwa/wp-content/uploads/2025/08/URMENTOR-WP-LOGO-1.png" alt="UR Mentor Logo" />
                 </div>
             </div>
             <div class="company-details">
